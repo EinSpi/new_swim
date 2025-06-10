@@ -19,7 +19,7 @@ def mse(f_approx,f_true):
 		return np.mean((f_approx-f_true)**2)
 
 #data
-data_path="Data\\discontinuous_complicated.mat"
+data_path="Data\\KdV_sine.mat"
 
 X_train, u_train, X_val, u_val, X_idn_star, u_idn_star, T_idn, X_idn, Exact_idn=load_training_data_from_mat(data_path=data_path, seed=42)
 lb_idn = np.array([0.0, -20.0])
@@ -28,7 +28,10 @@ keep=1
 #model
 #activation=act.Rational(num_coeff_p=3,num_coeff_q=2)
 activation=act.Rational(num_coeff_p=4,num_coeff_q=3)
-dense=swim_backbones.dense.Dense(layer_width=800,activation=activation,random_seed=42,repetition_scaler=4,set_size=7)
+dense=swim_backbones.dense.Dense(layer_width=100,activation=activation,random_seed=42,repetition_scaler=4,
+								 set_size=7,
+								 loss_metric="mse",reg_factor_1=0.0,reg_factor_2=1e-6,
+								 prob_strategy="var")
 linear=swim_backbones.linear.Linear()
 model=swim_model.Swim_Model([dense,linear])
 
