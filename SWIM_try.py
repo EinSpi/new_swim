@@ -4,7 +4,7 @@ import swim_backbones.dense
 import swim_backbones.linear
 import swim_model
 import activations.activations as act
-from utils.data_prepare import load_training_data_from_mat
+from utils.pre_processing import load_training_data_from_mat
 import numpy as np
 from scipy.interpolate import griddata
 from utils.plotting import newfig, savefig
@@ -31,7 +31,7 @@ activation=act.Rational(num_coeff_p=4,num_coeff_q=3)
 dense=swim_backbones.dense.Dense(layer_width=100,activation=activation,random_seed=42,repetition_scaler=4,
 								 set_size=7,
 								 loss_metric="mse",reg_factor_1=0.0,reg_factor_2=1e-6,
-								 prob_strategy="var")
+								 prob_strategy="cos")
 linear=swim_backbones.linear.Linear()
 model=swim_model.Swim_Model([dense,linear])
 

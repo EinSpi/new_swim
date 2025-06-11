@@ -7,7 +7,7 @@ from typing import Callable
 class Activation(ABC):
     num_a_params:int=1
     @abstractmethod
-    def infer(self, x:torch.Tensor,a_params:torch.Tensor,poles:torch.Tensor=None):
+    def infer(self, x:torch.Tensor,a_params:torch.Tensor):
         pass
 
 
@@ -23,7 +23,7 @@ class Rational(Activation):
         # 自动设置父类的 num_a_params
         self.num_a_params = self.num_coeff_p + self.num_coeff_q
 
-    def infer(self, x:torch.Tensor,a_params:torch.Tensor,poles:torch.Tensor=None):
+    def infer(self, x:torch.Tensor,a_params:torch.Tensor):
         # x (N,) a_params(p,) p here should be equal to self.num_a_params。 poles是极点，要么None 要么 (2,)
         # 拆分分子/分母系数
         coeff_p = a_params[:self.num_coeff_p]         # shape (p,)
@@ -71,7 +71,7 @@ class Rational(Activation):
 @dataclass
 class Adaptive_Activation(Activation):
     act:Callable=torch.relu
-    def infer(self,x:torch.Tensor,a_params:torch.Tensor,poles:torch.Tensor=None):
+    def infer(self,x:torch.Tensor,a_params:torch.Tensor):
         return self.act(x*a_params)
     
 @dataclass
@@ -99,12 +99,14 @@ class Adpt_Sigmoid(Adaptive_Activation):
 
 
 
+
+
 @dataclass
 class Non_Adaptive_Activation(Activation):
     act:Callable=torch.relu
     def __post_init__(self):
         self.num_a_params=0
-    def infer(self,x:torch.Tensor,a_params:torch.Tensor,poles:torch.Tensor=None):
+    def infer(self,x:torch.Tensor):
         return self.act(x)
 @dataclass
 class Tanh(Non_Adaptive_Activation):

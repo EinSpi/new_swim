@@ -47,7 +47,8 @@ class Adaptive_Solver:
     loss_metric:str="cos"
     reg_factor_1:float=0.0
     reg_factor_2:float=1e-6
-    def compute_a_paras(self,x_points:torch.Tensor,w:torch.Tensor,b:torch.Tensor,y_points:torch.Tensor,activation:Activation):
+    int_sketch:bool=True
+    def compute_a_paras(self,x_points:torch.Tensor,w:torch.Tensor,b:torch.Tensor,y_points:torch.Tensor,activation:Activation,save_path:str):
         m=x_points.shape[0]
         x_1d=torch.matmul(x_points,w.unsqueeze(-1))+b.unsqueeze(1) # (N,k,1) + (N,1,1)=(N,k,1)
         num_a_params=activation.num_a_params
@@ -74,7 +75,8 @@ class Adaptive_Solver:
                     print("bad trained a_params (nan)")
                 if torch.isinf(result).any():
                     print("bad trained a_params (inf)")
-                if i%(m//8)==0:
+                #绘制中间激活函数图像
+                if self.int_sketch and i%(m//8)==0:
                     #定期画一下我的sub optimization情况图
                     #look at a slice of sub optimization, plot
                     x_range=torch.linspace(x_slice.min(), x_slice.max(), 200) #(200,)
@@ -87,8 +89,7 @@ class Adaptive_Solver:
                     plt.legend()
                     plt.title('Data vs Function Curve')
                     plt.grid(True)
-                    save_path = "Results/"+"rational"+str(i//(m//8))
-                    plt.savefig(save_path)
+                    plt.savefig(save_path+"/"+"rational"+str(i//(m//8)))
                     plt.close()  # 很重要！防止内存累积
                 #print(result.shape)
                 final_a_params[i] = result

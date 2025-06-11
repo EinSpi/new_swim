@@ -1,8 +1,12 @@
 import torch
 import scipy.io
 import numpy as np
+import activations.activations as act
+import swim_backbones.dense
+import swim_backbones.linear
+import swim_model
 
-def load_training_data_from_mat(
+def load_data(
                                 data_path: str ,
                                 N_train: int = 10**4,
                                 N_val: int = 10**4,
@@ -61,3 +65,32 @@ def load_training_data_from_mat(
     X_idn_star = torch.tensor(X_idn_star,dtype=torch.float32)
 
     return X_train, U_train, X_val, U_val, X_idn_star, u_idn_star, T_idn, X_idn, Exact_idn
+
+def activation_prepare(activation:str="rat",p:int=4,q:int=3):
+    if activation=="rat":
+        return act.Rational(num_coeff_p=p,num_coeff_q=q)
+    elif activation=="adpt_tanh":
+        return act.Adpt_Tanh()
+    elif activation=="adpt_relu":
+        return act.Adpt_Relu()
+    elif activation=="adpt_sigmoid":
+        return act.Adpt_Sigmoid()
+    elif activation=="tanh":
+        return act.Tanh()
+    elif activation=="relu":
+        return act.Relu()
+    elif activation=="sigmoid":
+        return act.Sigmoid()
+
+def model_prepare(activation:act.Activation=act.Tanh(),
+                  layer_width:int=200,random_seed:int=42,
+                  repetition_scaler:int=4,set_size:int=7,loss_metric:str="mse",prob_strategy:str="cos",
+                  reg_factor_1:float=0.0,reg_factor_2:float=1e-6,int_sketch:bool=True,save_path:str=" ")->swim_model.Swim_Model:
+    dense=swim_backbones.dense.Dense(activation=activation,
+                                     layer_width=layer_width,random_seed=random_seed,
+                                     repetition_scaler=repetition_scaler,set_size=set_size,loss_metric=loss_metric,prob_strategy=prob_strategy,
+                                    reg_factor_1=reg_factor_1,reg_factor_2=reg_factor_2,int_sketch=int_sketch,save_path=save_path
+                                    )
+    linear=swim_backbones.linear.Linear()
+    model=swim_model.Swim_Model([dense,linear])
+    return model

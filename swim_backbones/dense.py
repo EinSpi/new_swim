@@ -15,6 +15,8 @@ class Dense(BaseTorchBlock):
     reg_factor_1:float=0.0
     reg_factor_2:float=1e-6
     prob_strategy:str = "var"
+    int_sketch:bool=True
+    save_path:str=" "
 
     w_b_solver: W_B_Solver = field(init=False)
     adaptive_solver:Adaptive_Solver = field(init=False)
@@ -23,7 +25,7 @@ class Dense(BaseTorchBlock):
     def __post_init__(self):
         super().__post_init__()
         self.w_b_solver = W_B_Solver(num_interpolation_per_pair=self.set_size)
-        self.adaptive_solver=Adaptive_Solver(loss_metric=self.loss_metric,reg_factor_1=self.reg_factor_1,reg_factor_2=self.reg_factor_2)
+        self.adaptive_solver=Adaptive_Solver(loss_metric=self.loss_metric,reg_factor_1=self.reg_factor_1,reg_factor_2=self.reg_factor_2,int_sketch=self.int_sketch)
         self.probability_solver=Probability_Solver(prob_strategy=self.prob_strategy)
 
 
@@ -54,14 +56,16 @@ class Dense(BaseTorchBlock):
                                                                w=self.weights,
                                                                b=self.biases,
                                                                y_points=self.candidate_y_pool[sampled_indices],
-                                                               activation=self.activation)#(W,p+q)
+                                                               activation=self.activation,
+                                                               save_path=self.save_path)#(W,p+q)
         else:
             #整池计算a_params,然后抽样
             self.candidate_a_params_pool=self.adaptive_solver.compute_a_paras(x_points=self.candidate_x_pool,
                                                                               w=self.candidate_w_pool,
                                                                               b=self.candidate_b_pool,
                                                                               y_points=self.candidate_y_pool,
-                                                                              activation=self.activation)#(N,p+q)
+                                                                              activation=self.activation,
+                                                                              save_path=self.save_path)#(N,p+q)
             
             #计算整体优化好的函数在全域X上的表现，准备求概率
             F_matrix=general_forward(x=x,w=self.candidate_w_pool,b=self.candidate_b_pool,
