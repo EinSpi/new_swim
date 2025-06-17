@@ -3,13 +3,10 @@ from activations.activations import Activation
 import gc
 from scipy.spatial import KDTree
 
-def generate_x_point_pairs(x:torch.Tensor,number:int=1000,generator=None,random_seed=42)->torch.Tensor:
-    if generator is None:
-        generator = torch.Generator()
-        if random_seed is not None:
-            generator.manual_seed(random_seed)
+def generate_x_point_pairs(x:torch.Tensor,generator:torch.Generator,number:int=1000)->torch.Tensor:
     N= x.shape[0]
-    all_indices = torch.randint(0, N, size=(number, 2), generator=generator)
+    
+    all_indices = torch.randint(0, N, size=(number, 2), generator=generator).to(x.device)
     x_sampled = x[all_indices]
     #滤除离得过近的点对
     diffs = x_sampled[:, 0, :] - x_sampled[:, 1, :]  # (m, d)
@@ -17,10 +14,6 @@ def generate_x_point_pairs(x:torch.Tensor,number:int=1000,generator=None,random_
     keep_mask = norms >= 1e-4                  # (m,)
     x_sampled = x_sampled[keep_mask] 
     return x_sampled #(m-c,2,d)  c为不满足条件被过滤掉的点对个数
-
-
-
-
 
 
 def find_nearest_indices(x_inter: torch.Tensor, x_real: torch.Tensor) -> torch.Tensor:
@@ -70,18 +63,6 @@ def clean_inputs(x: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.
         y = y.reshape(-1, 1)
     return x, y
     
-def general_forward(x:torch.Tensor, w: torch.Tensor, b:torch.Tensor, 
-                    a_params:torch.Tensor, activation: Activation)->torch.Tensor:
-    #x:(T,d) w (N,d) b (N,1) a_params(N,p+q)
-    num_neurons=w.shape[0]#N
-    num_datas=x.shape[0]#T
-    linear_transformed_x=w@x.T+b #(m,N)
-    result= torch.zeros(num_neurons, num_datas, dtype=torch.float32)#empty (N,T)
-    for i in range(num_neurons):
-        
-        result[i]=activation.infer(linear_transformed_x[i],None if a_params==None else a_params[i]).detach()
-        
-    return result.T#(T,N)
 
 
 

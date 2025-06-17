@@ -75,10 +75,11 @@ def p1(x_pairs:torch.Tensor,y_points:torch.Tensor)->torch.Tensor:
         prob (torch.Tensor): 概率分布 (N,)
     """
     var=torch.var(y_points, dim=1, unbiased=False).squeeze(-1) # (N,)
-    diff = x_pairs[:, 0, :] - x_pairs[:, 1, :]     # shape: (N, d)
-    l2 = torch.norm(diff, dim=1, keepdim=False)  # shape: (N,)
-    l2 = l2/torch.max(l2) #(N,)
-    logits=var/l2
+    #diff = x_pairs[:, 0, :] - x_pairs[:, 1, :]     # shape: (N, d)
+    #l2 = torch.norm(diff, dim=1, keepdim=False)  # shape: (N,)
+    #l2 = l2/torch.max(l2) #(N,)
+    #logits=var/l2
+    logits=var
     prob=logits/torch.sum(logits) #(N,)
     return prob
 @dataclass

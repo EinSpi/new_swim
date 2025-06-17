@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch.nn as nn 
 from activations.activations import Activation
+import torch
 
 @dataclass
 class BaseTorchBlock(nn.Module,ABC):
@@ -10,6 +11,7 @@ class BaseTorchBlock(nn.Module,ABC):
     activation: Activation =None
     weights: np.ndarray = None
     biases: np.ndarray = None
+    device:torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     def __post_init__(self):
         super().__init__()
 
@@ -30,7 +32,7 @@ class TorchPipeline(nn.Module):
 
     def fit(self, X, y=None):
         for module in self.modules_list:
-            module.fit(X, y)
+            module.fit(X, y)   
             X = module(X)  # forward一次得到下一级输入
         return self
 
