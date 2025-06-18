@@ -82,9 +82,49 @@ def p1(x_pairs:torch.Tensor,y_points:torch.Tensor)->torch.Tensor:
     logits=var
     prob=logits/torch.sum(logits) #(N,)
     return prob
+def p4(y:torch.Tensor, F:torch.Tensor,max_epochs:int=1000)->torch.Tensor:
+
+    M=torch.eye(F.shape[0], requires_grad=True,device=F.device) 
+    optimizer = torch.optim.Adam([M], lr=0.001)
+    # 早停设置
+    patience = max_epochs//5
+    best_loss = float('inf')
+    best_epoch = 0
+    best_M = None
+    
+    for epoch in range(max_epochs):
+        optimizer.zero_grad()
+        loss = diag_loss(M, F)
+        
+        if loss.item() < best_loss:  
+            best_loss = loss.item()
+            best_epoch = epoch
+            best_M = M.detach().clone()
+        elif epoch - best_epoch > patience:
+            print(f"Early stopping at epoch {epoch}. Best loss {best_loss:.6f} at epoch {best_epoch}")
+            break
+
+        loss.backward()
+        optimizer.step()
+        #if epoch%100==0:
+            #print(f"Epoch {epoch}: Loss = {loss.item():.6f}")
+
+    print(f"Best offdiag loss {best_loss:.6f} at epoch {best_epoch}")
+
+    return p2(y=best_M@y,F=best_M@F)
+        
+
+
+def diag_loss(M:torch.Tensor, F:torch.Tensor):
+    A = F.T @ M @ F  # (5, 5)
+    off_diag = A - torch.diag(torch.diagonal(A))
+    return torch.mean(off_diag**2)  # 非对角程度
+
+
 @dataclass
 class Probability_Solver:
     prob_strategy:str="var"
+    max_epochs:int=1000
     def probability_calculator(self,tensor1:torch.Tensor,tensor2:torch.Tensor)->torch.Tensor:
          if self.prob_strategy=="var":
               return p1(x_pairs=tensor1,y_points=tensor2)
@@ -92,6 +132,8 @@ class Probability_Solver:
               return p2(y=tensor1,F=tensor2)
          elif self.prob_strategy=="coeff":
               return p3(y=tensor1,F=tensor2)
+         elif self.prob_strategy=="M":
+              return p4(y=tensor1,F=tensor2,max_epochs=self.max_epochs)
          else:
               raise ValueError("undefined prob strategy")
          

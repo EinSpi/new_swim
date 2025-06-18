@@ -92,7 +92,7 @@ class Non_Adaptive_Activation(Activation):
     act:Callable=torch.relu
     def __post_init__(self):
         self.num_a_params=0
-    def infer(self,x:torch.Tensor):
+    def infer(self,x:torch.Tensor,a_params:torch.Tensor):
         return self.act(x)
 @dataclass
 class Tanh(Non_Adaptive_Activation):

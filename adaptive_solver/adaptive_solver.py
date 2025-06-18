@@ -85,12 +85,11 @@ class Adaptive_Solver:
             prob (torch.Tensor): 概率分布 (N,)
     """
     loss_metric:str="mse"
-    reg_factor_1:float=0.0
-    reg_factor_2:float=1e-6
+    reg_factor:float=1e-6
     int_sketch:bool=True
     optimizer:str="lbfgs"
     lr:float=1e-3
-    num_epochs:int=3000
+    max_epochs:int=3000
     cpu_gen:torch.Generator=torch.Generator()
     save_path:str=" "
     device:torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -122,18 +121,19 @@ class Adaptive_Solver:
         print(m)
         final_a_params= torch.zeros(m, activation.num_a_params, dtype=torch.float32,device=self.device)#空容器用来装优化出来的parameter
         for i in range(m):
+            print(i)
             x_slice,y_slice=x_1d[i].squeeze(-1),y_points[i].squeeze(-1)
             init_params = torch.tensor([0.0218, 0.5, 1.5957, 1.1915, 0.0, 0.0, 2.383], dtype=torch.float32,requires_grad=True,device=self.device)
             
             def loss_fn(params):
                 if self.loss_metric=="mse":
-                    return mse_loss(params, x_slice, y_slice, activation) +self.reg_factor_2*l2_reg(params)
+                    return mse_loss(params, x_slice, y_slice, activation) +self.reg_factor*l2_reg(params)
                 elif self.loss_metric=="cos":
-                    return cos_loss(params, x_slice, y_slice, activation) +self.reg_factor_2*l2_reg(params)
+                    return cos_loss(params, x_slice, y_slice, activation) +self.reg_factor*l2_reg(params)
                 else:
                     raise ValueError("undefined loss metrics")
             #L-BFGS method
-            result = minimize(loss_fn, init_params, method='l-bfgs', tol=1e-9, max_iter=10000)
+            result = minimize(loss_fn, init_params, method='l-bfgs', tol=1e-9, max_iter=self.max_epochs)
             result = result.x.detach()
             
             if torch.isnan(result).any():
@@ -152,14 +152,15 @@ class Adaptive_Solver:
         best_loss = float('inf')
         best_params = None
         best_epoch =0
-        for epoch in range(self.num_epochs):
+        patience=self.max_epochs//5
+        for epoch in range(self.max_epochs):
             optimizer.zero_grad()
 
             # loss 
             if self.loss_metric=="mse":
-                loss = mse_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation)  + self.reg_factor_2 * l2_reg(a_params)
+                loss = mse_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation)  + self.reg_factor * l2_reg(a_params)
             elif self.loss_metric=="cos":
-                loss = cos_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation) + self.reg_factor_2 * l2_reg(a_params)
+                loss = cos_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation) + self.reg_factor* l2_reg(a_params)
             else:
                 raise ValueError("undefined loss metrics")
 
@@ -167,7 +168,7 @@ class Adaptive_Solver:
                 best_loss = loss.item()
                 best_params = a_params.detach().clone()
                 best_epoch=epoch
-            elif epoch-best_epoch>=self.num_epochs//4:
+            elif epoch-best_epoch>=patience:
                 #early stop
                 print(f"Early stopping at epoch {epoch}, best was at {best_epoch} with loss {best_loss:.6f}")
                 break

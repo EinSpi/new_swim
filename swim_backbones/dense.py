@@ -5,20 +5,40 @@ import torch
 from w_b_solver.w_b_solver import W_B_Solver
 from probability_solver.probability_solver import Probability_Solver
 from adaptive_solver.adaptive_solver import Adaptive_Solver
+from activations.activations import Activation
 
-@dataclass
+
 class Dense(BaseTorchBlock):
     repetition_scaler: int = 2
     sample_first:bool=True
     gpu_gen: torch.Generator = field(default_factory=torch.Generator)
     cpu_gen: torch.Generator = field(default_factory=torch.Generator)
+    input_dimension:int = 2
     
     w_b_solver: W_B_Solver = field(default_factory=W_B_Solver)
     adaptive_solver: Adaptive_Solver = field(default_factory=Adaptive_Solver)
     probability_solver: Probability_Solver = field(default_factory=Probability_Solver)
-    
-    def __post_init__(self):
-        super().__post_init__()
+
+    def __init__(self, layer_width: int = 200, input_dimension: int=2, activation: Activation =None, device:torch.device=None,
+                repetition_scaler: int = 2,
+                sample_first:bool=True,
+                gpu_gen: torch.Generator = None,
+                cpu_gen: torch.Generator = None,
+
+                w_b_solver: W_B_Solver = None,
+                adaptive_solver: Adaptive_Solver = None,
+                probability_solver: Probability_Solver = None,
+                 ):
+        super().__init__(layer_width, input_dimension, activation, device)
+
+        self.repetition_scaler=repetition_scaler
+        self.gpu_gen=gpu_gen
+        self.cpu_gen=cpu_gen
+        self.sample_first=sample_first
+        self.w_b_solver=w_b_solver
+        self.adaptive_solver=adaptive_solver
+        self.probability_solver=probability_solver
+        self.register_buffer("a_params", torch.zeros(self.layer_width,self.activation.num_a_params))
 
 
     

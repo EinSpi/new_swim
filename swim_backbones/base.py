@@ -5,15 +5,19 @@ import torch.nn as nn
 from activations.activations import Activation
 import torch
 
-@dataclass
+
 class BaseTorchBlock(nn.Module,ABC):
     layer_width: int = None
+    input_dimension: int=None
     activation: Activation =None
-    weights: np.ndarray = None
-    biases: np.ndarray = None
-    device:torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    def __post_init__(self):
+    def __init__(self, layer_width: int = 200, input_dimension: int=2, activation: Activation =None, device:torch.device=None):
         super().__init__()
+        self.layer_width=layer_width
+        self.input_dimension=input_dimension
+        self.activation=activation
+        self.device=device
+        self.register_buffer("weights", torch.zeros(self.layer_width,self.input_dimension))
+        self.register_buffer("biases", torch.zeros(self.layer_width,1))
 
     ################################################
     ######abstract placeholder to for training######

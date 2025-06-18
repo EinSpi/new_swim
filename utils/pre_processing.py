@@ -111,6 +111,6 @@ def model_prepare(activation:act.Activation=act.Tanh(),
                                     adaptive_solver=adaptive_solver,
                                     probability_solver=probability_solver
                                     )
-    linear=swim_backbones.linear.Linear(device=device)
+    linear=swim_backbones.linear.Linear(device=device,layer_width=1,input_dimension=layer_width)
     model=swim_model.Swim_Model([dense,linear])
     return model

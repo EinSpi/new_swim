@@ -12,13 +12,18 @@ def compute_mse(tensor1,tensor2):
 def compute_rel_l2(tensor1,tensor2):
     return np.linalg.norm(tensor1-tensor2, ord=2) / np.linalg.norm(tensor2, ord=2)
 
-def save_errors(save_path: str, mse: float, rel_l2: float):
+def save_errors(save_path: str, mse: float, rel_l2: float,):
     os.makedirs(save_path, exist_ok=True)
-    error_file = os.path.join(save_path, 'errors.txt')
+    mse_error_file = os.path.join(save_path, 'mse_errors.txt')
+    rel_error_file = os.path.join(save_path, 'rel_errors.txt')
+
+    mse_index = get_line_index(mse_error_file)
+    rel_index = get_line_index(rel_error_file)
     
-    with open(error_file, 'w') as f:
-        f.write(f"mse: {mse}\n")
-        f.write(f"rel_l2: {rel_l2}\n")
+    with open(mse_error_file, 'a') as f:
+        f.write(f"{mse_index}: mse = {mse}\n")
+    with open(rel_error_file, 'a') as f:
+        f.write(f"{rel_index}: mse = {rel_l2}\n")
 
 def plot_dynamics(Exact_idn,lb_idn,ub_idn,keep,U_pred,save_path):
     ######################################################################
@@ -70,7 +75,20 @@ def plot_dynamics(Exact_idn,lb_idn,ub_idn,keep,U_pred,save_path):
     ax.set_ylabel('$x$')
     ax.set_title('Error', fontsize=10)
 
-    savefig(save_path+"\\"+"dynamics")
+    # 获取文件夹中已有的文件数（只计数文件）
+    dynamics_path=os.path.join(save_path, "dynamics")
+    os.makedirs(dynamics_path, exist_ok=True)
+    existing_files = [f for f in os.listdir(dynamics_path)]
+    idx = len(existing_files)
+    dynamic_path = os.path.join(dynamics_path, f"dynamic{idx}")
+    savefig(dynamic_path)
+
+    # 获取当前行数作为索引
+def get_line_index(filepath):
+    if not os.path.exists(filepath):
+        return 0
+    with open(filepath, 'r') as f:
+        return sum(1 for _ in f)
 
     
     

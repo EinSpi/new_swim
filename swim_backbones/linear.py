@@ -1,6 +1,8 @@
 from .base import BaseTorchBlock
 import torch
+
 class Linear(BaseTorchBlock):
+
     def fit(self, x:torch.Tensor,y:torch.Tensor):
         #x (T,N)
         #y (T,1)
@@ -41,8 +43,8 @@ class Linear(BaseTorchBlock):
         """
         #gelsd
         w_b, *_ = torch.linalg.lstsq(x_aug,y,driver="gels") 
-        self.weights=w_b[:-1] #(N,1)
-        self.biases=w_b[-1] #(1,)
+        self.weights=w_b[:-1].T #(layer_width,input_dimension)
+        self.biases=w_b[-1:].T #(layer_width,1)
         
         """
         generator = torch.Generator()
@@ -55,10 +57,10 @@ class Linear(BaseTorchBlock):
         return self
     
     def forward(self, x):
-        #x(N，layer_width)
-        #self.weights (layer_width,1) self.biases (1,)
+        #x(B，input_dimension)
+        #self.weights (layer_width,input_dimension) self.biases (layer_width,1)
         x.to(self.device)
-        return x@self.weights+self.biases#(N,1)+(1,)=(N,1)s
+        return x@self.weights.T+self.biases#(B,layer_width)+(layer_width,1)=(B,1)
         
 
 
