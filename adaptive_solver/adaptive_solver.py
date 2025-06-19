@@ -148,36 +148,65 @@ class Adaptive_Solver:
         return final_a_params
     
     def adam_optimize(self, x_1d:torch.Tensor, y_points:torch.Tensor,activation:Activation)->torch.Tensor:
-        m=x_1d.shape[0]
-        print(m)
-        a_params = torch.tensor([0.0218, 0.5, 1.5957, 1.1915, 0.0, 0.0, 2.383],device=self.device).repeat(m, 1).clone().detach().requires_grad_(True)
-        optimizer=torch.optim.Adam([a_params],lr=self.lr)
-        best_loss = float('inf')
+        import gc
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+
+        m = x_1d.shape[0]
+        print(f"[INFO] Batch size: {m}")
+        print(f"[INFO] CUDA before alloc: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+
+        # 参数初始化
+        a_params = torch.tensor(
+            [0.0218, 0.5, 1.5957, 1.1915, 0.0, 0.0, 2.383],
+            device=self.device
+        ).repeat(m, 1).clone().detach().requires_grad_(True)
+
+        optimizer = torch.optim.Adam([a_params], lr=self.lr)
+        best_loss = float("inf")
         best_params = None
-        best_epoch =0
-        patience=self.max_epochs//5
+        best_epoch = 0
+        patience = self.max_epochs // 5
+
         for epoch in range(self.max_epochs):
             optimizer.zero_grad()
 
-            # loss 
-            if self.loss_metric=="mse":
-                loss = mse_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation)  + self.reg_factor * l2_reg(a_params)
-            elif self.loss_metric=="cos":
-                loss = cos_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation) + self.reg_factor* l2_reg(a_params)
+            # Compute loss
+            if self.loss_metric == "mse":
+                loss = mse_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation)
+            elif self.loss_metric == "cos":
+                loss = cos_loss(a_params, x_1d.squeeze(-1), y_points.squeeze(-1), activation)
             else:
                 raise ValueError("undefined loss metrics")
 
+            loss = loss + self.reg_factor * l2_reg(a_params)
+
+            # Track best
             if loss.item() < best_loss:
-                best_loss = loss.item()
                 with torch.no_grad():
+                    best_loss = loss.item()
                     best_params = a_params.detach().clone()
-                best_epoch=epoch
-            elif epoch-best_epoch>=patience:
-                #early stop
-                print(f"Early stopping at epoch {epoch}, best was at {best_epoch} with loss {best_loss:.6f}")
+                    best_epoch = epoch
+            elif epoch - best_epoch >= patience:
+                print(f"[INFO] Early stopping at epoch {epoch}, best at {best_epoch} with loss {best_loss:.6f}")
                 break
+
             loss.backward()
             optimizer.step()
+
+            # 显存监控
+            if epoch % 10 == 0 or epoch == 0:
+                alloc = torch.cuda.memory_allocated() / 1024**2
+                peak = torch.cuda.max_memory_allocated() / 1024**2
+                print(f"[Epoch {epoch:03d}] loss = {loss.item():.6f} | mem: {alloc:.2f} MB | peak: {peak:.2f} MB")
+
+        # 清理多余图
+        del loss
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        print(f"[INFO] Final peak memory: {torch.cuda.max_memory_allocated() / 1024**2:.2f} MB")
+
 
         return best_params
 
