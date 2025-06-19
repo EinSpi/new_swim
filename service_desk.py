@@ -3,7 +3,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import subprocess
 import tqdm
 import numpy as np
-import tensorflow as tf
 import time
 from multiprocessing import Process, Queue
 
