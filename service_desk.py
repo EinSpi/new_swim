@@ -37,7 +37,7 @@ objs = ['KdV_sine','discontinuous_complicated']
 acts = ['rat']
 widths=[25,50,100,200,400,800,1600]
 
-total=len(objs)*len(objs)*len(widths)
+total=len(objs)*len(acts)*len(widths)
 
 with tqdm.tqdm(total=total, desc="Progress", unit="task", colour="green") as pbar:
     for width in widths:
