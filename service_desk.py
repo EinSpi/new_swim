@@ -23,7 +23,7 @@ def get_i_best_gpus(i):
     
 def run_training(exp, obj, act, width, device,cwd,queue):
     
-    cmd = f'python SWIM.py --exp {exp} --obj {obj} --act {act} --width {width} --device{device}'
+    cmd = f'python SWIM.py --exp {exp} --obj {obj} --act {act} --width {width} --device {device}'
 
     subprocess.call(cmd, shell=True, cwd=cwd)
     queue.put(device)  # Notify completion
