@@ -2,9 +2,7 @@ import os
 import argparse
 import activations.activations as act
 import utils.pre_processing as prp
-import utils.post_processing as psp
 import numpy as np
-from scipy.interpolate import griddata
 import torch
 from w_b_solver.w_b_solver import W_B_Solver
 from probability_solver.probability_solver import Probability_Solver
@@ -35,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp", type=str, default="618", help="实验名称")
     parser.add_argument("--obj", type=str, default="KdV_sine", help="目标函数")
     parser.add_argument("--act",type=str, default="rat",help="激活函数种类")
-    parser.add_argument("--width", type=int, default=1600, help="网络宽度")
+    parser.add_argument("--width", type=int, default=600, help="网络宽度")
     parser.add_argument("--rep_scaler",type=int,default=2,help="抽样池尺寸是需要神经元数的几倍")
     parser.add_argument("--loss_metric", type=str,default="mse", help="拟合adaptive参数时用的优化目标")
     parser.add_argument("--prob_strat",type=str,default="var",help="用何种标准计算概率")
@@ -52,31 +50,30 @@ if __name__ == "__main__":
     parser.add_argument("--random_seed", type=int,default=92,help="随机种子")
     parser.add_argument("--int_sketch",type=bool, default=True,help="是否要绘制中间激活函数图像")
     parser.add_argument("--save_weights", type=bool,default=True, help="是否要保存训练后的权重")
+    parser.add_argument("--device",type=int, default=0, help="实验要使用的设备编号")
 
     parser.add_argument("--path_keys", type=str, default="exp,obj,act,width",help="哪些参数参与实验统计，用逗号分隔")
     
     args = parser.parse_args()
+
+    #########################################
+    ############目录准备阶段##################
+    ########################################
     #创建实验目录：
-    ##要参加统计的项目列表
+    #要参加统计的项目列表
     include_arguments_list=args.path_keys.split(",")
-    ##所有参数列表
+    #所有参数列表
     all_arg_names = [action.dest for action in parser._actions if action.option_strings and hasattr(args, action.dest)]
-    ###去掉最后一个 path_keys
+    #所有参数去掉最后一个 path_keys
     if "path_keys" in all_arg_names:
         all_arg_names.remove("path_keys")
-    print(all_arg_names)
-    
+    #组建实验目录
     experiment_path = "Results"
     for name in all_arg_names:
         if name in include_arguments_list:
             value = getattr(args, name)
             experiment_path += f"/{name}_{value}"
-    
 
-    
-    
-
-    #experiment_path="Results/"+args.experiment+"/"+"obj_"+args.obj+"/"+"act_"+args.act+"/"+"width_"+str(args.width)
     os.makedirs(experiment_path, exist_ok=True)
     #在实验目录中写下所有参数到一个文件中，作为manifest
     manifest_path = os.path.join(experiment_path, "manifest.txt")
@@ -85,15 +82,17 @@ if __name__ == "__main__":
             value = getattr(args, name)
             f.write(f"{name}={value}\n")
 
-
+    ###################################################
+    #################训练阶段###########################
+    ###################################################
     
     #准备训练数据
-    X_train, u_train, X_val, u_val, X_idn_star, u_idn_star, T_idn, X_idn, Exact_idn=prp.load_data(data_path="Data/"+args.obj+".mat", seed=args.random_seed)
+    X_train, u_train, utrain_numpy,X_val, u_val, X_idn_star, u_idn_star, T_idn, X_idn, Exact_idn=prp.load_data(data_path="Data/"+args.obj+".mat", seed=args.random_seed)
     #准备激活函数
     activation=prp.activation_prepare(activation=args.act,p=args.p,q=args.q)
     #准备模型
     ##准备设备
-    device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device= torch.device(f"cuda:{args.device}" if torch.cuda.is_available() else "cpu")
     ##准备随机数生成器
     gpu_gen=torch.Generator(device=device)
     gpu_gen.manual_seed(args.random_seed)
@@ -127,51 +126,27 @@ if __name__ == "__main__":
     #模型保存
     if args.save_weights:
         torch.save(model.state_dict(),os.path.join(experiment_path,"w_b_a.pth"))
-    #模型推理
+
+
+
+    ############################################
+    ##############推理阶段#######################
+    ############################################
+
+    #模型推理，先用训练原数据推理一次
     SWIM_test.inference(model=model,
                         model_path=experiment_path,
-                        X_idn_star=X_idn_star,
-                        u_idn_star=u_idn_star,
+                        X_idn_star=X_idn_star,#X_idn_star
+                        u_idn_star=u_idn_star,#u_idn_star
                         T_idn=T_idn,
                         X_idn=X_idn,
                         Exact_idn=Exact_idn,
                         random_seed=args.random_seed,
                         device=device)
+    #再用随机生成数据推理5次
+    np.random.seed(args.random_seed)
+    random_seeds = np.random.choice(np.arange(1, 101), size=5, replace=False).tolist()
+    for seed in random_seeds:
+        SWIM_test.inference(model_path=experiment_path,device=device,random_seed=seed)
 
-    """
-    u_pred_identifier=model(X_idn_star)
-    #抽查推理结果
-    if args.sample_first:
-        print("sample first inference result:")
-    else:
-        print("optimization first inference result:")
-
-    #计算误差并打印
-    u_pred_identifier=u_pred_identifier.detach().cpu().numpy()#torch to numpy
-    mse=psp.compute_mse(u_pred_identifier,u_idn_star)
-    rel_l2=psp.compute_rel_l2(u_pred_identifier,u_idn_star)
-    print(f"mse: {mse}")
-    print(f"rel l2: {rel_l2}")
-
-    #保存误差至实验目录
-    psp.save_errors(save_path=experiment_path,mse=float(mse),rel_l2=float(rel_l2))
-
-    #绘制推理结果误差图
-    lb_idn = np.array([0.0, -20.0])
-    ub_idn = np.array([40.0, 20.0])
-    keep=1
-    U_pred = griddata(X_idn_star, u_pred_identifier.flatten(), (T_idn, X_idn), method='cubic')
-    psp.plot_dynamics(ub_idn=ub_idn,lb_idn=lb_idn,Exact_idn=Exact_idn,keep=keep,U_pred=U_pred,save_path=experiment_path)
-    """
-
-
-
-
-
-
-
-
-
-
-
-
+    

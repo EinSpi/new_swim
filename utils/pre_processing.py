@@ -58,16 +58,14 @@ def load_data(
     X_train_np = np.hstack([t_train, x_train])
     X_val_np = np.hstack([t_val, x_val])
 
-    # Convert to torch
+    # Convert to torch,拿去推理和训练的家伙要边torch
     X_train = torch.tensor(X_train_np, dtype=torch.float32)
     U_train = torch.tensor(u_train_noisy, dtype=torch.float32)
 
     X_val = torch.tensor(X_val_np, dtype=torch.float32)
-    U_val = torch.tensor(u_val, dtype=torch.float32)
-
     X_idn_star = torch.tensor(X_idn_star,dtype=torch.float32)
 
-    return X_train, U_train, X_val, U_val, X_idn_star, u_idn_star, T_idn, X_idn, Exact_idn
+    return X_train, U_train,u_train_noisy, X_val, u_val, X_idn_star, u_idn_star, T_idn, X_idn, Exact_idn
 
 def activation_prepare(activation:str="rat",p:int=4,q:int=3):
     if activation=="rat":
