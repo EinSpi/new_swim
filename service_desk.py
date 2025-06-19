@@ -38,10 +38,10 @@ def run_training2(exp:str,
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(device)
 
-    cmd="python3 SWIM.py  --path_keys "+','.join(stripped_var_names)+" --device 0 --exp "+exp+" --"+stripped_var_names[-1]+f" {last_arg}"
+    cmd="python3 SWIM.py --exp "+exp
     for i in range(len(args_combo)):
         cmd=cmd+ " --"+stripped_var_names[i]+f" {args_combo[i]} "
-    
+    cmd=cmd+" --"+stripped_var_names[-1]+f" {last_arg}"+" --device 0 --path_keys "+','.join(stripped_var_names)
     subprocess.call(cmd, shell=True, cwd=cwd,env=env)
     queue.put(device)
 
@@ -111,7 +111,7 @@ widths=[100,200]
 rep_scalers=[2,4]
 loss_metrics=["cos", "mse"]
 prob_strat=["var","cos","coeff","M"]
-optimizers=["lbfgs","adam"]
+optimizers=["adam"]
 set_sizes=[7,8]
 
 
