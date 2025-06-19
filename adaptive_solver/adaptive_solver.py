@@ -3,6 +3,7 @@ from activations.activations import Activation
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import gc
 
     
     
@@ -145,6 +146,10 @@ class Adaptive_Solver:
                 if torch.isinf(init_params).any():
                     print("bad trained a_params (inf)")
                 final_a_params[i]=init_params.detach()
+            # 显式释放，避免显存累积
+            del init_params, optimizer, loss_fn
+            torch.cuda.empty_cache()
+            gc.collect()
         return final_a_params
     
     def adam_optimize(self, x_1d:torch.Tensor, y_points:torch.Tensor,activation:Activation)->torch.Tensor:
@@ -185,12 +190,13 @@ class Adaptive_Solver:
                     best_epoch = epoch
             elif epoch - best_epoch >= patience:
                 print(f"[INFO] Early stopping at epoch {epoch}, best at {best_epoch} with loss {best_loss:.6f}")
-                break
 
             loss.backward()
             optimizer.step()
 
-            
+        del a_params, optimizer, loss
+        torch.cuda.empty_cache()
+        gc.collect()
 
 
         return best_params
