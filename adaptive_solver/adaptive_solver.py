@@ -148,14 +148,10 @@ class Adaptive_Solver:
         return final_a_params
     
     def adam_optimize(self, x_1d:torch.Tensor, y_points:torch.Tensor,activation:Activation)->torch.Tensor:
-        import gc
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+        
 
         m = x_1d.shape[0]
-        print(f"[INFO] Batch size: {m}")
-        print(f"[INFO] CUDA before alloc: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
-
+        
         # 参数初始化
         a_params = torch.tensor(
             [0.0218, 0.5, 1.5957, 1.1915, 0.0, 0.0, 2.383],
@@ -194,18 +190,7 @@ class Adaptive_Solver:
             loss.backward()
             optimizer.step()
 
-            # 显存监控
-            if epoch % 10 == 0 or epoch == 0:
-                alloc = torch.cuda.memory_allocated() / 1024**2
-                peak = torch.cuda.max_memory_allocated() / 1024**2
-                print(f"[Epoch {epoch:03d}] loss = {loss.item():.6f} | mem: {alloc:.2f} MB | peak: {peak:.2f} MB")
-
-        # 清理多余图
-        del loss
-        gc.collect()
-        torch.cuda.empty_cache()
-
-        print(f"[INFO] Final peak memory: {torch.cuda.max_memory_allocated() / 1024**2:.2f} MB")
+            
 
 
         return best_params
