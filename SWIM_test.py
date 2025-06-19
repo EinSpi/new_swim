@@ -88,8 +88,7 @@ def inference(model_path:str,device:torch.device,random_seed:int=99,
         U_pred = griddata(X_idn_star, u_pred_identifier.flatten(), (T_idn, X_idn), method='nearest')
         
 
-    print(f"mse: {mse}")
-    print(f"rel l2: {rel_l2}")
+    print("model "+model_path+f" mse: {mse} rel l2: {rel_l2}")
     psp.save_errors(save_path=model_path,mse=float(mse),rel_l2=float(rel_l2))
     psp.plot_dynamics(ub_idn=ub_idn,lb_idn=lb_idn,Exact_idn=Exact_idn,keep=keep,U_pred=U_pred,save_path=model_path)
 
