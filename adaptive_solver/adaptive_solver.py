@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from activations.activations import Activation
 import torch
 import torch.nn.functional as F
-from torchmin import minimize
 import matplotlib.pyplot as plt
 
     
@@ -124,24 +123,28 @@ class Adaptive_Solver:
             print(i)
             x_slice,y_slice=x_1d[i].squeeze(-1),y_points[i].squeeze(-1)
             init_params = torch.tensor([0.0218, 0.5, 1.5957, 1.1915, 0.0, 0.0, 2.383], dtype=torch.float32,requires_grad=True,device=self.device)
+            optimizer=torch.optim.LBFGS([init_params],lr=self.lr,max_iter=self.max_epochs,tolerance_grad=1e-9)
             
-            def loss_fn(params):
+            def loss_fn():
+                optimizer.zero_grad()
                 if self.loss_metric=="mse":
-                    return mse_loss(params, x_slice, y_slice, activation) +self.reg_factor*l2_reg(params)
+                    loss = mse_loss(init_params, x_slice, y_slice, activation) 
                 elif self.loss_metric=="cos":
-                    return cos_loss(params, x_slice, y_slice, activation) +self.reg_factor*l2_reg(params)
+                    loss = cos_loss(init_params, x_slice, y_slice, activation) 
                 else:
                     raise ValueError("undefined loss metrics")
-            #L-BFGS method
-            result = minimize(loss_fn, init_params, method='l-bfgs', tol=1e-9, max_iter=self.max_epochs)
-            result = result.x.detach()
+                loss=loss+self.reg_factor*l2_reg(init_params)
+                loss.backward()
+                return loss
             
-            if torch.isnan(result).any():
-                print("bad trained a_params (nan)")
-            if torch.isinf(result).any():
-                print("bad trained a_params (inf)")
+            optimizer.step(loss_fn)
             
-            final_a_params[i] = result
+            with torch.no_grad():
+                if torch.isnan(init_params).any():
+                    print("bad trained a_params (nan)")
+                if torch.isinf(init_params).any():
+                    print("bad trained a_params (inf)")
+                final_a_params[i]=init_params.detach()
         return final_a_params
     
     def adam_optimize(self, x_1d:torch.Tensor, y_points:torch.Tensor,activation:Activation)->torch.Tensor:
