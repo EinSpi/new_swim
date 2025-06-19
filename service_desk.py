@@ -41,7 +41,7 @@ total=len(objs)*len(objs)*len(widths)
 with tqdm.tqdm(total=total, desc="Progress", unit="task", colour="green") as pbar:
     for width in widths:
         for act in acts:
-            devices = get_i_best_gpus(3)
+            devices = get_i_best_gpus(2)
             queue = Queue()
             running = {}  # gpu_id: Process
             remaining_objs = objs.copy()
