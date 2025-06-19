@@ -55,7 +55,7 @@ with tqdm.tqdm(total=total, desc="Progress", unit="task", colour="green") as pba
                         if device in running and running[device].is_alive():
                             running[device].join()
                         obj = remaining_objs.pop(0)
-                        p = Process(target=run_training, args=(exp,obj,act,width,device))
+                        p = Process(target=run_training, args=(exp,obj,act,width,device,cwd,queue))
                         p.start()
                         running[device] = p
                 else:
