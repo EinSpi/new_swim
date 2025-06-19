@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--random_seed", type=int,default=92,help="随机种子")
     parser.add_argument("--int_sketch",type=bool, default=True,help="是否要绘制中间激活函数图像")
     parser.add_argument("--save_weights", type=bool,default=True, help="是否要保存训练后的权重")
-    parser.add_argument("--device",type=int, default=0, help="实验要使用的设备编号")
+    parser.add_argument("--device",type=int, default=0, help="实验要使用的设备编号") 
 
     parser.add_argument("--path_keys", type=str, default="exp,obj,act,width",help="哪些参数参与实验统计，用逗号分隔")
     
