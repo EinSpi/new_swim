@@ -43,10 +43,8 @@ class Dense(BaseTorchBlock):
 
     
     def fit(self, x:torch.Tensor,y:torch.Tensor):
-        print(self.device)
         x=x.to(self.device)
         y=y.to(self.device)
-        print(x.device)
         #make sure shape compatible, x(N,d) y(N,1)
         x,y =clean_inputs(x,y)
         x_pairs=generate_x_point_pairs(x=x,number=self.repetition_scaler*self.layer_width,generator=self.cpu_gen) #(m,2,d)
@@ -63,7 +61,6 @@ class Dense(BaseTorchBlock):
                 #求概率并抽样
                 probability=self.probability_solver.probability_calculator(tensor1=x_pairs,tensor2=self.candidate_y_pool)
                 sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.gpu_gen)
-                print(" sample first")
                 
                 #用抽到的索引选取池中项目
                 self.weights,self.biases=self.candidate_w_pool[sampled_indices],self.candidate_b_pool[sampled_indices]
@@ -86,7 +83,6 @@ class Dense(BaseTorchBlock):
                                                                 )
                 probability=self.probability_solver.probability_calculator(tensor1=x_pairs,tensor2=self.candidate_y_pool)
                 sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.gpu_gen)
-                print(" optimization first")
                 
                 self.weights,self.biases=self.candidate_w_pool[sampled_indices],self.candidate_b_pool[sampled_indices]
                 self.a_params=None if self.candidate_a_params_pool==None else self.candidate_a_params_pool[sampled_indices]
