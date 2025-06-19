@@ -42,14 +42,14 @@ if __name__ == "__main__":
     parser.add_argument("--q",type=int,default=3,help="有理函数的分母阶数")
     parser.add_argument("--set_size", type=int,default=7,help="点集大小")
 
-    parser.add_argument("--max_epochs",type=int,default=3000,help="局部优化adaptive parameter最大迭代次数")
-    parser.add_argument("--M_max_epochs",type=int,default=500,help="优化M矩阵最大迭代次数")
+    parser.add_argument("--max_epoch",type=int,default=3000,help="局部优化adaptive parameter最大迭代次数")
+    parser.add_argument("--M_max_epoch",type=int,default=500,help="优化M矩阵最大迭代次数")
     parser.add_argument("--reg_factor",type=float,default=1e-6,help="第二个归一化系数")
     
     parser.add_argument("--sample_first",type=bool,default=True,help="先抽样还是先拟合")
     parser.add_argument("--random_seed", type=int,default=92,help="随机种子")
     parser.add_argument("--int_sketch",type=bool, default=True,help="是否要绘制中间激活函数图像")
-    parser.add_argument("--save_weights", type=bool,default=True, help="是否要保存训练后的权重")
+    parser.add_argument("--save_weight", type=bool,default=True, help="是否要保存训练后的权重")
     parser.add_argument("--device",type=int, default=0, help="实验要使用的设备编号") 
 
     parser.add_argument("--path_keys", type=str, default="exp,obj,act,width",help="哪些参数参与实验统计，用逗号分隔")
@@ -106,8 +106,8 @@ if __name__ == "__main__":
                                     optimizer=args.optimizer,
                                     cpu_gen=cpu_gen,
                                     save_path=experiment_path,
-                                    max_epochs=args.max_epochs)
-    probability_solver=Probability_Solver(prob_strategy=args.prob_strat,max_epochs=args.M_max_epochs)
+                                    max_epochs=args.max_epoch)
+    probability_solver=Probability_Solver(prob_strategy=args.prob_strat,max_epochs=args.M_max_epoch)
     ##准备模型pipeline
     model=prp.model_prepare(activation=activation,
                             layer_width=args.width,
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     #模型训练
     model.fit(X=X_train,y=u_train)
     #模型保存
-    if args.save_weights:
+    if args.save_weight:
         torch.save(model.state_dict(),os.path.join(experiment_path,"w_b_a.pth"))
 
 
