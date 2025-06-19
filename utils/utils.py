@@ -2,6 +2,7 @@ import torch
 from activations.activations import Activation
 import gc
 from scipy.spatial import KDTree
+from typing import Tuple
 
 def generate_x_point_pairs(x:torch.Tensor,generator:torch.Generator,number:int=1000)->torch.Tensor:
     N= x.shape[0]
@@ -43,7 +44,7 @@ def find_nearest_indices(x_inter: torch.Tensor, x_real: torch.Tensor) -> torch.T
 
 
 
-def clean_inputs(x: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+def clean_inputs(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     将输入x, y处理成规范形状。
 
