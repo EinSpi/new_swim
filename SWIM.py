@@ -66,7 +66,7 @@ if __name__ == "__main__":
     all_arg_names=["exp","obj","act","width",
                    "rep_scaler","loss_metric","prob_strat","optimizer",
                    "p","q","set_size","max_epoch",
-                   "M_max_epoch","regfactor","sample_first","random_seed",
+                   "M_max_epoch","reg_factor","sample_first","random_seed",
                    "int_sketch","save_weight","device"]
     experiment_path = "Results"+f"/{args.exp}"
     for name in all_arg_names:
