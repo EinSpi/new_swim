@@ -33,7 +33,7 @@ def run_training(exp, obj, act, width, device,cwd,queue):
     queue.put(device)  # Notify completion
 
 def run_training2(exp:str, 
-                  args_combo:Tuple, last_arg, stripped_var_names:list[str], 
+                  args_combo:Tuple, last_arg, stripped_var_names:list, 
                   device, cwd, queue):
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(device)
