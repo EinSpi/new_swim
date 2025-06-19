@@ -63,12 +63,12 @@ if __name__ == "__main__":
     #要参加统计的项目列表
     include_arguments_list=args.path_keys.split(",")
     #所有参数列表
-    all_arg_names = [action.dest for action in parser._actions if action.option_strings and hasattr(args, action.dest)]
-    #所有参数去掉最后一个 path_keys
-    if "path_keys" in all_arg_names:
-        all_arg_names.remove("path_keys")
-    #组建实验目录
-    experiment_path = "Results"
+    all_arg_names=["exp","obj","act","width",
+                   "rep_scaler","loss_metric","prob_strat","optimizer",
+                   "p","q","set_size","max_epoch",
+                   "M_max_epoch","regfactor","sample_first","random_seed",
+                   "int_sketch","save_weight","device"]
+    experiment_path = "Results"+f"/{args.exp}"
     for name in all_arg_names:
         if name in include_arguments_list:
             value = getattr(args, name)
