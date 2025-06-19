@@ -21,10 +21,12 @@ def get_i_best_gpus(i):
         return [0, 1]
     
 def run_training(exp, obj, act, width, device,cwd,queue):
+    env = os.environ.copy()
+    env["CUDA_VISIBLE_DEVICES"] = str(device)
     
-    cmd = f'python3 SWIM.py --exp {exp} --obj {obj} --act {act} --width {width} --device {device}'
+    cmd = f'python3 SWIM.py --exp {exp} --obj {obj} --act {act} --width {width} --device 0'
 
-    subprocess.call(cmd, shell=True, cwd=cwd)
+    subprocess.call(cmd, shell=True, cwd=cwd,env=env)
     queue.put(device)  # Notify completion
 
 
