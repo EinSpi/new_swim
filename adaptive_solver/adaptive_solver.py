@@ -169,7 +169,8 @@ class Adaptive_Solver:
 
             if loss.item() < best_loss:
                 best_loss = loss.item()
-                best_params = a_params.detach().clone()
+                with torch.no_grad():
+                    best_params = a_params.detach().clone()
                 best_epoch=epoch
             elif epoch-best_epoch>=patience:
                 #early stop
