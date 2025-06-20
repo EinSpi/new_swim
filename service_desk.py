@@ -100,26 +100,23 @@ def iterate_lists(dict1,dict2,exp,cwd,gpu_num):
 #######################################################################################################
 cwd = os.path.dirname(os.path.realpath(__file__))
 gpu_num=2
-exp = 'exp_flexible_args'
+exp = 'exp_0620'
 
 
 ###你想统计的所有实验超参列表，注意名称必须加s，可以是一个，必须名称符合SWIM.py的参数名称
 
 dict1={
-    "obj":['KdV_sine','discontinuous_complicated'],
+    "obj":['KdV_sine','discontinuous_complicated','advection','discontinuous_trivial','burgers', 'euler_bernoulli'],
     "act":['rat'],
-    "width":[100,200],
-    "rep_scaler":[2,4],
+    "width":[50,100,200,400,800,1600],
     "loss_metric":["cos","mse"],
     "prob_strat":["var","cos","coeff","M"],
-    "optimizer":["adam"],
-    "set_size":[7,8]
 
 }
-###你不想统计的超参列表，必须没有上面项目，以词典的形式
+###你不想统计的但想修改的超参列表，必须没有上面项目，以词典的形式,必须是一个值
 dict2={
     "reg_factor":1e-6,
-    "max_epoch":2500,
+    "max_epoch":3000,
     "random_seed":76
 }
 
