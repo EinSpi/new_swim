@@ -127,10 +127,10 @@ class Adaptive_Solver:
             init_params=self.initialize_a_params(p=activation.num_coeff_p,q=activation.num_coeff_q,m=x_1d.shape[0])
             if self.optimizer=="lbfgs":
                 #使用lbfgs优化器
-                result=self.lbfgs_optimize(x_1d=x_1d,y_points=y_points,activation=activation)
+                result=self.lbfgs_optimize(x_1d=x_1d,y_points=y_points,activation=activation,init_params=init_params)
             elif self.optimizer=="adam":
                 #使用adams优化器求解
-                result=self.adam_optimize(x_1d=x_1d,y_points=y_points,activation=activation)
+                result=self.adam_optimize(x_1d=x_1d,y_points=y_points,activation=activation,init_params=init_params)
             else:
                 raise ValueError("invalid optimizer")
         
