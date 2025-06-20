@@ -1,14 +1,12 @@
-from .base import BaseTorchBlock
-from utils.utils import clean_inputs, generate_x_point_pairs, find_nearest_indices
 import torch
+from .base import BaseTorchBlock
 from ..solvers import W_B_Solver,Probability_Solver,Adaptive_Solver
-from activations.activations import Activation
-
+from ..activations import Activation
+from utils.utils import clean_inputs, generate_x_point_pairs, find_nearest_indices
 
 class Dense(BaseTorchBlock):
     def __init__(self, layer_width: int = 200, input_dimension: int=2, activation: Activation =None, device:torch.device=None,
                 repetition_scaler: int = 2,
-                sample_first:bool=True,
                 gpu_gen: torch.Generator = None,
                 cpu_gen: torch.Generator = None,
 
@@ -21,7 +19,6 @@ class Dense(BaseTorchBlock):
         self.repetition_scaler=repetition_scaler
         self.gpu_gen=gpu_gen
         self.cpu_gen=cpu_gen
-        self.sample_first=sample_first
         self.w_b_solver=w_b_solver
         self.adaptive_solver=adaptive_solver
         self.probability_solver=probability_solver

@@ -1,5 +1,4 @@
 import torch
-import gc
 from scipy.spatial import KDTree
 from typing import Tuple
 
@@ -64,21 +63,6 @@ def clean_inputs(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.
     return x, y
     
 
-
-
-def delete_tensors(*tensors, clear_cuda_cache: bool = True):
-    """
-    删除任意数量的 Tensor，并可选清除 GPU 显存缓存。
-    
-    参数：
-        *tensors: 任意数量的 Tensor 变量（可以是列表、元组、变量名）
-        clear_cuda_cache: 是否自动清理 CUDA 缓存，默认 True
-    """
-    for t in tensors:
-        del t
-    gc.collect()  # 强制垃圾回收
-    if clear_cuda_cache and torch.cuda.is_available():
-        torch.cuda.empty_cache()
 
     
 

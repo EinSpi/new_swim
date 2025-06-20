@@ -5,8 +5,9 @@ import tqdm
 import numpy as np
 import time
 from multiprocessing import Process, Queue
-from typing import Tuple
 import itertools
+import argparse
+import json
 
 def get_i_best_gpus(i):
     try:
@@ -22,99 +23,86 @@ def get_i_best_gpus(i):
         print(e)
         return [0, 1]
     
-def run_training(exp:str, path_keys:list, args_combo:Tuple,
-                  dict2:dict,last_arg,
-                  device, cwd, queue):
+def run_training(exp:str, total_dict:dict, path_keys:list,device:int, cwd:str, device_queue):
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(device)
 
-    cmd="python3 SWIM.py --exp "+exp
-    #要统计的,这里差一个，因为args_combo比path_keys短一个
-    for i in range(len(args_combo)):
-        cmd=cmd+ f" --{path_keys[i]} {args_combo[i]} "
-    cmd=cmd+f" --{path_keys[-1]} {last_arg} "
-    #不要统计的
-    for key, value in dict2.items():
-        cmd=cmd+ f" --{key} {value} "
-    cmd=cmd+" --device 0 --path_keys "+' '.join(path_keys)
+    cmd=f"python3 SWIM_train.py --exp {exp} "
+    cmd+=" ".join([f"--{key} {value} " for key,value in total_dict.items()])
+    cmd+=" --device 0 --path_keys "+' '.join(path_keys)
     
     subprocess.call(cmd, shell=True, cwd=cwd,env=env)
-    queue.put(device)
+    device_queue.put(device)
 
-def iterate_lists(dict1,dict2,exp,cwd,gpu_num):
-    keys1=list(dict1.keys())#需要统计的项目名称列表，随后要传入path_keys
+def launch_parallel_experiment(dict1:dict,dict2:dict,exp:str,cwd:str,gpu_num:int):
+    # 获取所有待统计的超参组合
+    path_keys = list(dict1.keys())
+    values = [dict1[key] for key in path_keys]
+    all_value_combos_dict1 = list(itertools.product(*values))  # 全组合
+    total = len(all_value_combos_dict1)
 
-    # 拆出前 n-1 和最后一个键
-    leading_keys1, last_key1 = keys1[:-1], keys1[-1]
-    leading_lists1 = [dict1[k] for k in leading_keys1]
-    last_list1 = dict1[last_key1]
-
-    total=1
-    for lst in dict1.values():
-        total=total*len(lst)
-
-    # 生成组合
     with tqdm.tqdm(total=total, desc="Progress", unit="task", colour="green") as pbar:
-        for combo in itertools.product(*leading_lists1):
-            devices = get_i_best_gpus(gpu_num)
-            queue = Queue()
-            running = {}  # gpu_id: Process
-            remaining_items = last_list1.copy()
-            # Pre-fill the queue with initial free GPUs
-            for device in devices:
-                queue.put(device)
-            while remaining_items:
-                if not queue.empty():
-                        device = queue.get()
-                        pbar.update(1)
-                        if device in running and running[device].is_alive():
-                            running[device].join()
-                        last_arg = remaining_items.pop(0)
-                        p = Process(target=run_training, args=(exp,keys1,combo,dict2,last_arg,device,cwd,queue))
-                        p.start()
-                        running[device] = p
-                else:
-                    # If no GPU reports finished yet, wait a bit
-                    time.sleep(1)
-                # Wait for all running processes to finish
-            for p in running.values():
-                p.join()
-        
+        task_queue = all_value_combos_dict1.copy()
+        device_queue = Queue()
+        running = {}  # gpu_id -> Process
+
+        # 初始填充 GPU 队列
+        available_devices = get_i_best_gpus(gpu_num)
+        for dev in available_devices:
+            device_queue.put(dev)
+
+        while task_queue:
+            # 若 GPU 空闲且有任务，派发任务
+            if not device_queue.empty():
+                device = device_queue.get()
+                value_combo_dict1 = task_queue.pop(0)
+                combo_dict1=dict(zip(path_keys,value_combo_dict1))
+                total_dict={**dict2, **combo_dict1}
+                p = Process(target=run_training, args=(exp, total_dict, path_keys,device, cwd, device_queue))
+                p.start()
+                running[device] = p
+                pbar.update(1)
+            else:
+                # 等 GPU 空闲
+                time.sleep(1)
+
+        # 等所有任务结束
+        for p in running.values():
+            p.join()
 
 
 
+   
 
-#######################################################################################################
-#####################################开始实验###########################################################
-#######################################################################################################
-cwd = os.path.dirname(os.path.realpath(__file__))
-gpu_num=2#最多使用gpu数量
-exp = 'exp_0620'#实验名称
+if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="命令行参数示例")
+    
+    # 添加参数
+    parser.add_argument("--exp_config", type=str, default=" ", help="实验配置文件")
+    args = parser.parse_args()
+    
+    #加载实验配置文件
+    with open(args.exp_config, "r") as f:
+        config = json.load(f)
 
-###你想统计的所有实验超参列表，注意名称必须加s，可以是一个，必须名称符合SWIM.py的参数名称
-dict1={
-    "obj":['KdV_sine','discontinuous_complicated','advection','discontinuous_trivial','burgers', 'euler_bernoulli'],
-    "act":['rat'],
-    "width":[50,100,200,400,800,1600],
-    "loss_metric":["cos","mse"],
-    "prob_strat":["var","cos","coeff","M"],
+    #锚定主操作目录，整理实验配置
+    cwd :str= os.path.dirname(os.path.realpath(__file__))
+    gpu_num:int=config["gpu_num"]
+    exp:str=config["exp"]
+    dict1:dict=config["dict1"]
+    dict2:dict=config["dict2"]
 
-}
-###你不想统计的，但想修改的超参列表，必须没有上面项目，以词典的形式,必须是一个值
-dict2={
-    "reg_factor":1e-6,
-    "max_epoch":3000,
-    "random_seed":76
-}
+    #冲突检查门禁
+    overlap=set(dict1.keys())&set(dict2.keys())
+    if set(dict1.keys())&set(dict2.keys()):
+        raise ValueError(f"same keys in dict1 and dict2: {overlap}")
+    
+    #启动！
+    launch_parallel_experiment(dict1,dict2,exp=exp,cwd=cwd,gpu_num=gpu_num)
 
-overlap=set(dict1.keys())&set(dict2.keys())
-if set(dict1.keys())&set(dict2.keys()):
-    raise ValueError(f"same keys in dict1 and dict2: {overlap}")
-
-iterate_lists(dict1,dict2,exp=exp,cwd=cwd,gpu_num=gpu_num)
-
-
+    
+    
 """
 parser.add_argument("--exp", type=str, default="618", help="实验名称")
 parser.add_argument("--obj", type=str, default="KdV_sine", help="目标函数")

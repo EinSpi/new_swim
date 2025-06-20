@@ -5,7 +5,7 @@ import utils.post_processing as psp
 import numpy as np
 import torch
 from solvers import *
-import SWIM_test
+import SWIM_infer
 import time
 
 if __name__ == "__main__":
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_weight", type=bool,default=True, help="是否要保存训练后的权重")
     parser.add_argument("--device",type=int, default=0, help="实验要使用的设备编号") 
 
-    parser.add_argument("--path_keys", type=str, nargs='+', default=["exp","obj","act","width"],help="哪些参数参与实验统计，用逗号分隔")
+    parser.add_argument("--path_keys", type=str, nargs='+', default=["exp","obj","act","width"],help="哪些参数参与实验统计")
     
     args = parser.parse_args()
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     ############################################
 
     #模型推理，先用训练原数据推理一次
-    SWIM_test.inference(model=model,
+    SWIM_infer.inference(model=model,
                         model_path=experiment_path,
                         X_idn_star=X_idn_star,#X_idn_star
                         u_idn_star=u_idn_star,#u_idn_star
@@ -136,6 +136,6 @@ if __name__ == "__main__":
     np.random.seed(args.random_seed)
     random_seeds = np.random.choice(np.arange(1, 101), size=5, replace=False).tolist()
     for seed in random_seeds:
-        SWIM_test.inference(model_path=experiment_path,device=device,random_seed=seed)
+        SWIM_infer.inference(model_path=experiment_path,device=device,random_seed=seed)
 
     
