@@ -1,9 +1,9 @@
 import torch
 import scipy.io
 import numpy as np
-from ..activations import *
-from ..swim_backbones import *
-from ..solvers import *
+from activations import *
+from swim_backbones import *
+from solvers import *
 
 def load_data(
                                 data_path: str ,

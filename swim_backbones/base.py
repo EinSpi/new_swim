@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import torch.nn as nn 
-from activations.activations import Activation
+from activations import Activation
 import torch
 
 

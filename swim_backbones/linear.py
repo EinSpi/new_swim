@@ -1,4 +1,4 @@
-from .base import BaseTorchBlock
+from swim_backbones.base import BaseTorchBlock
 import torch
 
 class Linear(BaseTorchBlock):

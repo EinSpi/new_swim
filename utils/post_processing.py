@@ -1,7 +1,6 @@
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import numpy as np
-from scipy.interpolate import griddata
 from utils.plotting import newfig, savefig
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec

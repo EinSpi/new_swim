@@ -1,7 +1,7 @@
 import torch
-from .base import BaseTorchBlock
-from ..solvers import W_B_Solver,Probability_Solver,Adaptive_Solver
-from ..activations import Activation
+from swim_backbones.base import BaseTorchBlock
+from solvers import W_B_Solver,Probability_Solver,Adaptive_Solver
+from activations import Activation
 from utils.utils import clean_inputs, generate_x_point_pairs, find_nearest_indices
 
 class Dense(BaseTorchBlock):

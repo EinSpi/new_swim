@@ -4,7 +4,7 @@ import utils.pre_processing as prp
 import utils.post_processing as psp
 import numpy as np
 from scipy.interpolate import griddata
-from .swim_backbones import Swim_Model
+from swim_backbones import Swim_Model
 import os
 
 def load_config(manifest_path):
