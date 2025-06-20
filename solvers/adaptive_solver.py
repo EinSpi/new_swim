@@ -216,6 +216,7 @@ class Adaptive_Solver:
                     best_epoch = epoch
             elif epoch - best_epoch >= patience:
                 print(f"[INFO] Early stopping at epoch {epoch}, best at {best_epoch} with loss {best_loss:.6f}")
+                break
 
             loss.backward()
             optimizer.step()

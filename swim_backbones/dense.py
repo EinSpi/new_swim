@@ -42,7 +42,7 @@ class Dense(BaseTorchBlock):
             #先抽样后拟合
             #求概率并抽样
             probability=self.probability_solver.probability_calculator(tensor1=x_pairs,tensor2=self.candidate_y_pool)
-            sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.gpu_gen)
+            sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.cpu_gen)
             
             #用抽到的索引选取池中项目
             self.weights,self.biases=self.candidate_w_pool[sampled_indices],self.candidate_b_pool[sampled_indices]
@@ -84,7 +84,7 @@ class Dense(BaseTorchBlock):
             F_matrix=self.activation.infer(x=self.candidate_w_pool@x.T+self.candidate_b_pool,a_params=self.candidate_a_params_pool).T
             #求概率并抽样
             probability=self.probability_solver.probability_calculator(tensor1=y,tensor2=F_matrix)
-            sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.gpu_gen)
+            sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.cpu_gen)
             #用抽到的索引选取池中项目
             self.weights,self.biases=self.candidate_w_pool[sampled_indices],self.candidate_b_pool[sampled_indices]
             self.a_params=None if self.candidate_a_params_pool==None else self.candidate_a_params_pool[sampled_indices]
