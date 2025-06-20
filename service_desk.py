@@ -32,48 +32,47 @@ def run_training(exp, obj, act, width, device,cwd,queue):
     subprocess.call(cmd, shell=True, cwd=cwd,env=env)
     queue.put(device)  # Notify completion
 
-def run_training2(exp:str, 
-                  args_combo:Tuple, last_arg, stripped_var_names:list, 
+def run_training2(exp:str, path_keys:list, args_combo:Tuple,
+                  dict2:dict,last_arg,
                   device, cwd, queue):
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(device)
 
     cmd="python3 SWIM.py --exp "+exp
+    #要统计的,这里差一个，因为args_combo比path_keys短一个
     for i in range(len(args_combo)):
-        cmd=cmd+ " --"+stripped_var_names[i]+f" {args_combo[i]} "
-    cmd=cmd+" --"+stripped_var_names[-1]+f" {last_arg}"+" --device 0 --path_keys "+','.join(stripped_var_names)
+        cmd=cmd+ f" --{path_keys[i]} {args_combo[i]} "
+    cmd=cmd+f" --{path_keys[-1]} {last_arg} "
+    #不要统计的
+    for key, value in dict2.items():
+        cmd=cmd+ f" --{key} {value} "
+    cmd=cmd+" --device 0 --path_keys "+' '.join(path_keys)
+    
     subprocess.call(cmd, shell=True, cwd=cwd,env=env)
     queue.put(device)
 
 
     
 
-def iterate_lists(*lists,exp,cwd,gpu_num):
-    #获取总任务数
+def iterate_lists(dict1,dict2,exp,cwd,gpu_num):
+    keys1=list(dict1.keys())#需要统计的项目名称列表，随后要传入path_keys
+
+    # 拆出前 n-1 和最后一个键
+    leading_keys1, last_key1 = keys1[:-1], keys1[-1]
+    leading_lists1 = [dict1[k] for k in leading_keys1]
+    last_list1 = dict1[last_key1]
+
     total=1
-    for lst in lists:
+    for lst in dict1.values():
         total=total*len(lst)
-     # 获取调用者的局部变量名（用于找到变量名）
-    caller_locals = inspect.currentframe().f_back.f_locals
-    # 查出传入列表对应的变量名（逆查）
-    var_names = []
-    for lst in lists:
-        found = [name for name, val in caller_locals.items() if val is lst]
-        var_names.append(found[0] if found else 'unknown')
 
-    # 输出：去掉 s 的变量名
-    stripped_names = [name.rstrip('s') for name in var_names]
-    
-    # 分离前 n-1 和最后一个列表
-    *leading_lists, last_list = lists
-
-
+    # 生成组合
     with tqdm.tqdm(total=total, desc="Progress", unit="task", colour="green") as pbar:
-        for combo in itertools.product(*leading_lists):
+        for combo in itertools.product(*leading_lists1):
             devices = get_i_best_gpus(gpu_num)
             queue = Queue()
             running = {}  # gpu_id: Process
-            remaining_items = last_list.copy()
+            remaining_items = last_list1.copy()
             # Pre-fill the queue with initial free GPUs
             for device in devices:
                 queue.put(device)
@@ -84,38 +83,51 @@ def iterate_lists(*lists,exp,cwd,gpu_num):
                         if device in running and running[device].is_alive():
                             running[device].join()
                         last_arg = remaining_items.pop(0)
-                        p = Process(target=run_training2, args=(exp,combo,last_arg,stripped_names,device,cwd,queue))
+                        p = Process(target=run_training2, args=(exp,keys1,combo,dict2,last_arg,device,cwd,queue))
                         p.start()
                         running[device] = p
                 else:
                     # If no GPU reports finished yet, wait a bit
                     time.sleep(1)
-            
-            # Wait for all running processes to finish
+                # Wait for all running processes to finish
             for p in running.values():
                 p.join()
-
-
         
 
 
+
+
+#######################################################################################################
 cwd = os.path.dirname(os.path.realpath(__file__))
 gpu_num=2
 exp = 'exp_flexible_args'
 
 
-###你想统计的所有实验超参列表，注意名称必须加s，必须名称符合SWIM.py的参数名称
-objs = ['KdV_sine','discontinuous_complicated']
-acts = ['rat']
-widths=[100,200]
-rep_scalers=[2,4]
-loss_metrics=["cos", "mse"]
-prob_strat=["var","cos","coeff","M"]
-optimizers=["adam"]
-set_sizes=[7,8]
+###你想统计的所有实验超参列表，注意名称必须加s，可以是一个，必须名称符合SWIM.py的参数名称
 
+dict1={
+    "obj":['KdV_sine','discontinuous_complicated'],
+    "act":['rat'],
+    "width":[100,200],
+    "rep_scaler":[2,4],
+    "loss_metric":["cos","mse"],
+    "prob_strat":["var","cos","coeff","M"],
+    "optimizer":["adam"],
+    "set_size":[7,8]
 
-iterate_lists(objs,acts,widths,rep_scalers,loss_metrics,prob_strat,optimizers,set_sizes,exp=exp,cwd=cwd,gpu_num=gpu_num)
+}
+###你不想统计的超参列表，必须没有上面项目，以词典的形式
+dict2={
+    "reg_factor":1e-6,
+    "max_epoch":2500,
+    "random_seed":76
+}
+
+overlap=set(dict1.keys())&set(dict2.keys())
+if set(dict1.keys())&set(dict2.keys()):
+    raise ValueError(f"same keys in dict1 and dict2: {overlap}")
+
+iterate_lists(dict1,dict2,exp=exp,cwd=cwd,gpu_num=gpu_num)
 
 
 """

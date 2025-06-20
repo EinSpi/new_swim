@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_weight", type=bool,default=True, help="是否要保存训练后的权重")
     parser.add_argument("--device",type=int, default=0, help="实验要使用的设备编号") 
 
-    parser.add_argument("--path_keys", type=str, default="exp,obj,act,width",help="哪些参数参与实验统计，用逗号分隔")
+    parser.add_argument("--path_keys", type=str, nargs='+', default=["exp","obj","act","width"],help="哪些参数参与实验统计，用逗号分隔")
     
     args = parser.parse_args()
 
@@ -60,17 +60,15 @@ if __name__ == "__main__":
     ############目录准备阶段##################
     ########################################
     #创建实验目录：
-    #要参加统计的项目列表
-    include_arguments_list=args.path_keys.split(",")
     #所有参数列表
     all_arg_names=["exp","obj","act","width",
                    "rep_scaler","loss_metric","prob_strat","optimizer",
                    "p","q","set_size","max_epoch",
                    "M_max_epoch","reg_factor","sample_first","random_seed",
                    "int_sketch","save_weight","device"]
-    experiment_path = "Results"+f"/{args.exp}"
+    experiment_path =os.path.join("Results",args.exp)
     for name in all_arg_names:
-        if name in include_arguments_list:
+        if name in args.path_keys:
             value = getattr(args, name)
             experiment_path += f"/{name}_{value}"
 
