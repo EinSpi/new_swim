@@ -117,7 +117,7 @@ def p4(y:torch.Tensor, F:torch.Tensor,max_epochs:int=1000)->torch.Tensor:
 
 def p5(y_points:torch.Tensor)->torch.Tensor:
      #uniform
-     logits=torch.ones(y_points.shape[0])
+     logits=torch.ones(y_points.shape[0],device=y_points.device)
      prob = logits/torch.sum(logits)
      return prob
         
