@@ -4,7 +4,7 @@ import utils.pre_processing as prp
 import utils.post_processing as psp
 import numpy as np
 from scipy.interpolate import griddata
-import swim_model
+from .swim_backbones import Swim_Model
 import os
 
 def load_config(manifest_path):
@@ -40,7 +40,7 @@ def custom_random_data(lb=np.array([0.0, -20.0]),ub=np.array([40.0, 20.0]),rando
     return X_idn_star
 
 def inference(model_path:str,device:torch.device,random_seed:int=99,
-              model:swim_model.Swim_Model=None,
+              model:Swim_Model=None,
               X_idn_star:torch.Tensor=None, 
               u_idn_star:torch.Tensor=None, 
               T_idn:torch.Tensor=None, 

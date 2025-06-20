@@ -5,7 +5,7 @@ from typing import Callable
 
 @dataclass
 class Activation(ABC):
-    num_a_params:int=1
+    num_a_params:int=0
     @abstractmethod
     def infer(self, x:torch.Tensor,a_params:torch.Tensor)->torch.Tensor:
         pass
@@ -35,11 +35,10 @@ class Rational(Activation):
         coeff_p = a_params[:,:self.num_coeff_p]         # shape (B,p)
         coeff_q = a_params[:,self.num_coeff_p:]         # shape (B,q)
 
-        # 构造 分子：x 的幂次矩阵 与 coeff_p线性相乘
+        # 构造 分子：x 的幂次矩阵 与 coeff_p线性相乘, p越往后对应幂次越大
         x_powers_p = torch.stack([x ** i for i in range(self.num_coeff_p)], dim=2)  # shape (B, set_size, p)
         numerator = torch.bmm(x_powers_p,coeff_p.unsqueeze(2)).squeeze(2)#(B,set_size,p) bmm (B,p,1)= (B,set_size,1)->squeeze->(B,set_size)
-        # 构造 分母：根据极点信息，制造不同的分母形式
-        
+        # 构造 分母：q越往后对应幂次越大
         x_powers_q = torch.stack([x ** i for i in range(self.num_coeff_q)], dim=2)  # shape (B, set_size, q)
         denominator = 1+(torch.bmm(x_powers_q,coeff_q.unsqueeze(2)).squeeze(2))**2 # (B,set_size)
         
@@ -53,47 +52,21 @@ class Rational(Activation):
 
 
 
-
-@dataclass
-class Adaptive_Activation(Activation):
-    act:Callable=torch.relu
-    def infer(self,x:torch.Tensor,a_params:torch.Tensor)->torch.Tensor:
-        return self.act(x*a_params)
-    
-@dataclass
-class Adpt_Tanh(Adaptive_Activation):
-    def __post_init__(self):
-        self.act=torch.tanh
-
-@dataclass
-class Adpt_Relu(Adaptive_Activation):
-    def __post_init__(self):
-        self.act=torch.relu
-
-@dataclass
-class Adpt_Sigmoid(Adaptive_Activation):
-    def __post_init__(self):
-        self.act=torch.sigmoid
-
-
-
-
-
-
-
-
-
-
-
-
-
 @dataclass
 class Non_Adaptive_Activation(Activation):
     act:Callable=torch.relu
     def __post_init__(self):
         self.num_a_params=0
     def infer(self,x:torch.Tensor,a_params:torch.Tensor):
-        return self.act(x)
+        if x.dim()==1:
+            x = x.unsqueeze(0) #(1, set_size)
+
+        res = self.act(x)
+
+        if res.shape[0]==1:
+            res=res.squeeze(0) #(set_size,)
+
+        return res
 @dataclass
 class Tanh(Non_Adaptive_Activation):
     def __post_init__(self):

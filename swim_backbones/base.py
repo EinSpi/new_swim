@@ -1,15 +1,10 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-import numpy as np
 import torch.nn as nn 
 from activations.activations import Activation
 import torch
 
 
 class BaseTorchBlock(nn.Module,ABC):
-    layer_width: int = None
-    input_dimension: int=None
-    activation: Activation =None
     def __init__(self, layer_width: int = 200, input_dimension: int=2, activation: Activation =None, device:torch.device=None):
         super().__init__()
         self.layer_width=layer_width
@@ -44,6 +39,10 @@ class TorchPipeline(nn.Module):
         for module in self.modules_list:
             X = module(X)
         return X
+    
+class Swim_Model(TorchPipeline):
+    def __init__(self, modules):
+        super().__init__(modules=modules)
 
     
     

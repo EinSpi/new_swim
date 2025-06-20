@@ -24,6 +24,12 @@ def save_errors(save_path: str, mse: float, rel_l2: float,):
         f.write(f"{mse_index}: mse = {mse}\n")
     with open(rel_error_file, 'a') as f:
         f.write(f"{rel_index}: mse = {rel_l2}\n")
+    # 获取当前行数作为索引
+def get_line_index(filepath):
+    if not os.path.exists(filepath):
+        return 0
+    with open(filepath, 'r') as f:
+        return sum(1 for _ in f)
 
 def plot_dynamics(Exact_idn,lb_idn,ub_idn,keep,U_pred,save_path):
     ######################################################################
@@ -83,12 +89,7 @@ def plot_dynamics(Exact_idn,lb_idn,ub_idn,keep,U_pred,save_path):
     dynamic_path = os.path.join(dynamics_path, f"dynamic{idx}")
     savefig(dynamic_path)
 
-    # 获取当前行数作为索引
-def get_line_index(filepath):
-    if not os.path.exists(filepath):
-        return 0
-    with open(filepath, 'r') as f:
-        return sum(1 for _ in f)
+
 
     
     

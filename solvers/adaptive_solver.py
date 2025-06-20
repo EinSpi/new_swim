@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from activations.activations import Activation
+from activations.activations import Activation,Rational
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
@@ -44,6 +44,8 @@ def l2_reg(params:torch.Tensor):
 def random_visualize(x_1d:torch.Tensor, y_points:torch.Tensor,a_params:torch.Tensor, activation:Activation,generator:torch.Generator, device:torch.device,how_many:int=8, save_path:str=" "):
     #create random slices to plot
     #x_1d (B,set_size,1)
+    if a_params==None:
+        return
     
     view_indices = torch.randperm(x_1d.shape[0],generator=generator)[:how_many]
     x_slices=x_1d[view_indices].squeeze(-1) #(how_many, set_size)
@@ -70,6 +72,9 @@ def random_visualize(x_1d:torch.Tensor, y_points:torch.Tensor,a_params:torch.Ten
         plt.close()
 
 
+
+
+    pass
 @dataclass
 class Adaptive_Solver:
     """
@@ -91,8 +96,24 @@ class Adaptive_Solver:
     lr:float=1e-3
     max_epochs:int=3000
     cpu_gen:torch.Generator=torch.Generator()
+    gpu_gen:torch.Generator=torch.Generator()
     save_path:str=" "
     device:torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    init_method:str="relu_like"
+
+    def initialize_a_params(self,p:int,q:int,m:int)->torch.Tensor:
+        if self.init_method=="relu_like":
+            if p<4 or q<3:
+                raise ValueError("too less params to approximate relu, p must >= 4,and q>=3")
+            else:
+                return torch.tensor([0.0218, 0.5, 1.5957, 1.1915]+[0.0]*(p-4)+[ 0.0, 0.0, 2.383]+[0.0]*(q-3),device=self.device,dtype=torch.float32).repeat(m, 1)
+        elif self.init_method=="zero":
+            return torch.zeros(m,p+q,device=self.device,dtype=torch.float32)
+        elif self.init_method=="random":
+            return torch.rand(m, p+q, generator=self.gpu_gen,device=self.device,dtype=torch.float32)
+        else:
+            raise ValueError("undefined initialize method")
+
     def compute_a_paras(self,x_points:torch.Tensor,w:torch.Tensor,b:torch.Tensor,y_points:torch.Tensor,activation:Activation):
         x_1d=torch.matmul(x_points,w.unsqueeze(-1))+b.unsqueeze(1) # (N,k,1) + (N,1,1)=(N,k,1)
         #if cuda available, use gpu
@@ -100,14 +121,18 @@ class Adaptive_Solver:
         if activation.num_a_params==0:
             #无a_params
             result=None
-        elif self.optimizer=="lbfgs":
-            #使用lbfgs优化器
-            result=self.lbfgs_optimize(x_1d=x_1d,y_points=y_points,activation=activation)
-        elif self.optimizer=="adam":
-            #使用adams优化器求解
-            result=self.adam_optimize(x_1d=x_1d,y_points=y_points,activation=activation)
         else:
-            raise ValueError("invalid optimizer")
+            if not isinstance(activation, Rational):
+                raise TypeError("Expected B instance")
+            init_params=self.initialize_a_params(p=activation.num_coeff_p,q=activation.num_coeff_q,m=x_1d.shape[0])
+            if self.optimizer=="lbfgs":
+                #使用lbfgs优化器
+                result=self.lbfgs_optimize(x_1d=x_1d,y_points=y_points,activation=activation)
+            elif self.optimizer=="adam":
+                #使用adams优化器求解
+                result=self.adam_optimize(x_1d=x_1d,y_points=y_points,activation=activation)
+            else:
+                raise ValueError("invalid optimizer")
         
         if self.int_sketch:
             #随机可视化拟合情况
@@ -115,53 +140,54 @@ class Adaptive_Solver:
             
         return result
     
-    def lbfgs_optimize(self, x_1d:torch.Tensor,y_points:torch.Tensor,activation:Activation)->torch.Tensor:
+    def lbfgs_optimize(self, x_1d:torch.Tensor,y_points:torch.Tensor,activation:Activation,init_params:torch.Tensor)->torch.Tensor:
         #x_1d (B,set_size,1) y_points (B,set_size, 1)
         m=x_1d.shape[0]
-        print(m)
         final_a_params= torch.zeros(m, activation.num_a_params, dtype=torch.float32,device=self.device)#空容器用来装优化出来的parameter
         for i in range(m):
-            print(i)
             x_slice,y_slice=x_1d[i].squeeze(-1),y_points[i].squeeze(-1)
-            init_params = torch.tensor([0.0218, 0.5, 1.5957, 1.1915, 0.0, 0.0, 2.383], dtype=torch.float32,requires_grad=True,device=self.device)
-            optimizer=torch.optim.LBFGS([init_params],lr=self.lr,max_iter=self.max_epochs,tolerance_grad=1e-9)
+            params_i = init_params[i].detach().clone().requires_grad_(True)
+            optimizer=torch.optim.LBFGS([params_i],lr=self.lr,max_iter=self.max_epochs,tolerance_grad=1e-9)
             
             def loss_fn():
                 optimizer.zero_grad()
                 if self.loss_metric=="mse":
-                    loss = mse_loss(init_params, x_slice, y_slice, activation) 
+                    loss = mse_loss(params_i, x_slice, y_slice, activation) 
                 elif self.loss_metric=="cos":
-                    loss = cos_loss(init_params, x_slice, y_slice, activation) 
+                    loss = cos_loss(params_i, x_slice, y_slice, activation) 
                 else:
                     raise ValueError("undefined loss metrics")
-                loss=loss+self.reg_factor*l2_reg(init_params)
+                loss=loss+self.reg_factor*l2_reg(params_i)
                 loss.backward()
                 return loss
             
             optimizer.step(loss_fn)
             
             with torch.no_grad():
-                if torch.isnan(init_params).any():
+                if torch.isnan(params_i).any():
                     print("bad trained a_params (nan)")
-                if torch.isinf(init_params).any():
+                if torch.isinf(params_i).any():
                     print("bad trained a_params (inf)")
-                final_a_params[i]=init_params.detach()
+                final_a_params[i]=params_i.detach()
             # 显式释放，避免显存累积
-            del init_params, optimizer, loss_fn
+            del params_i, optimizer, loss_fn
             torch.cuda.empty_cache()
             gc.collect()
         return final_a_params
     
-    def adam_optimize(self, x_1d:torch.Tensor, y_points:torch.Tensor,activation:Activation)->torch.Tensor:
+    def adam_optimize(self, x_1d:torch.Tensor, y_points:torch.Tensor,activation:Activation,init_params:torch.Tensor)->torch.Tensor:
         
 
         m = x_1d.shape[0]
         
         # 参数初始化
+        """
         a_params = torch.tensor(
             [0.0218, 0.5, 1.5957, 1.1915, 0.0, 0.0, 2.383],
             device=self.device
         ).repeat(m, 1).clone().detach().requires_grad_(True)
+        """
+        a_params=init_params.clone().detach().requires_grad_(True)
 
         optimizer = torch.optim.Adam([a_params], lr=self.lr)
         best_loss = float("inf")

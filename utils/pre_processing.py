@@ -1,13 +1,9 @@
 import torch
 import scipy.io
 import numpy as np
-import activations.activations as act
-import swim_backbones.dense
-import swim_backbones.linear
-import swim_model
-from w_b_solver.w_b_solver import W_B_Solver
-from probability_solver.probability_solver import Probability_Solver
-from adaptive_solver.adaptive_solver import Adaptive_Solver
+from ..activations import *
+from ..swim_backbones import *
+from ..solvers import *
 
 def load_data(
                                 data_path: str ,
@@ -69,21 +65,15 @@ def load_data(
 
 def activation_prepare(activation:str="rat",p:int=4,q:int=3):
     if activation=="rat":
-        return act.Rational(num_coeff_p=p,num_coeff_q=q)
-    elif activation=="adpt_tanh":
-        return act.Adpt_Tanh()
-    elif activation=="adpt_relu":
-        return act.Adpt_Relu()
-    elif activation=="adpt_sigmoid":
-        return act.Adpt_Sigmoid()
+        return Rational(num_coeff_p=p,num_coeff_q=q)
     elif activation=="tanh":
-        return act.Tanh()
+        return Tanh()
     elif activation=="relu":
-        return act.Relu()
+        return Relu()
     elif activation=="sigmoid":
-        return act.Sigmoid()
+        return Sigmoid()
 
-def model_prepare(activation:act.Activation=act.Tanh(),
+def model_prepare(activation:Activation=Tanh(),
                   layer_width:int=200,
                   repetition_scaler:int=4,
                   sample_first:bool=True, 
@@ -96,19 +86,19 @@ def model_prepare(activation:act.Activation=act.Tanh(),
                   adaptive_solver:Adaptive_Solver=Adaptive_Solver(),
                   probability_solver:Probability_Solver=Probability_Solver()
 
-                  )->swim_model.Swim_Model:
-    dense=swim_backbones.dense.Dense(activation=activation,
-                                     layer_width=layer_width,
-                                     repetition_scaler=repetition_scaler,
-                                    sample_first=sample_first,
-                                    cpu_gen=cpu_gen,
-                                    gpu_gen=gpu_gen,
-                                    device=device,
+                  )->Swim_Model:
+    dense=Dense(activation=activation,
+                layer_width=layer_width,
+                repetition_scaler=repetition_scaler,
+                sample_first=sample_first,
+                cpu_gen=cpu_gen,
+                gpu_gen=gpu_gen,
+                device=device,
 
-                                    w_b_solver=w_b_solver,
-                                    adaptive_solver=adaptive_solver,
-                                    probability_solver=probability_solver
-                                    )
-    linear=swim_backbones.linear.Linear(device=device,layer_width=1,input_dimension=layer_width)
-    model=swim_model.Swim_Model([dense,linear])
+                w_b_solver=w_b_solver,
+                adaptive_solver=adaptive_solver,
+                probability_solver=probability_solver
+                )
+    linear=Linear(device=device,layer_width=1,input_dimension=layer_width)
+    model=Swim_Model([dense,linear])
     return model

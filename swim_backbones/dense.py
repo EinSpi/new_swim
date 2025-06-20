@@ -1,24 +1,11 @@
-from dataclasses import dataclass,field
 from .base import BaseTorchBlock
-from utils.utils import clean_inputs,delete_tensors, generate_x_point_pairs, find_nearest_indices
+from utils.utils import clean_inputs, generate_x_point_pairs, find_nearest_indices
 import torch
-from w_b_solver.w_b_solver import W_B_Solver
-from probability_solver.probability_solver import Probability_Solver
-from adaptive_solver.adaptive_solver import Adaptive_Solver
+from ..solvers import W_B_Solver,Probability_Solver,Adaptive_Solver
 from activations.activations import Activation
 
 
 class Dense(BaseTorchBlock):
-    repetition_scaler: int = 2
-    sample_first:bool=True
-    gpu_gen: torch.Generator = field(default_factory=torch.Generator)
-    cpu_gen: torch.Generator = field(default_factory=torch.Generator)
-    input_dimension:int = 2
-    
-    w_b_solver: W_B_Solver = field(default_factory=W_B_Solver)
-    adaptive_solver: Adaptive_Solver = field(default_factory=Adaptive_Solver)
-    probability_solver: Probability_Solver = field(default_factory=Probability_Solver)
-
     def __init__(self, layer_width: int = 200, input_dimension: int=2, activation: Activation =None, device:torch.device=None,
                 repetition_scaler: int = 2,
                 sample_first:bool=True,
@@ -54,25 +41,23 @@ class Dense(BaseTorchBlock):
         indices=find_nearest_indices(x_inter=pseudo_samples,x_real=x)#(N,k)
         self.candidate_x_pool,self.candidate_y_pool=x[indices],y[indices]#(N,k,d), (N,k,1)
         #如果是方差指导概率，先抽样，再算adpt，若不是，则需要算完adpt再算概率抽样
-        if self.probability_solver.prob_strategy=="var":
+        if self.probability_solver.prob_strategy in ["var","uni","SWIM"]:
             #先抽样后拟合
-            #抽查索引
-            if self.sample_first:
-                #求概率并抽样
-                probability=self.probability_solver.probability_calculator(tensor1=x_pairs,tensor2=self.candidate_y_pool)
-                sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.gpu_gen)
-                
-                #用抽到的索引选取池中项目
-                self.weights,self.biases=self.candidate_w_pool[sampled_indices],self.candidate_b_pool[sampled_indices]
-                #对抽到的对象进行a_param计算
-                
-                self.a_params=self.adaptive_solver.compute_a_paras(x_points=self.candidate_x_pool[sampled_indices],
-                                                                w=self.weights,
-                                                                b=self.biases,
-                                                                y_points=self.candidate_y_pool[sampled_indices],
-                                                                activation=self.activation,
-                                                                )#(W,p+q)
-                
+            #求概率并抽样
+            probability=self.probability_solver.probability_calculator(tensor1=x_pairs,tensor2=self.candidate_y_pool)
+            sampled_indices= torch.multinomial(probability, num_samples=self.layer_width, replacement=False,generator=self.gpu_gen)
+            
+            #用抽到的索引选取池中项目
+            self.weights,self.biases=self.candidate_w_pool[sampled_indices],self.candidate_b_pool[sampled_indices]
+            #对抽到的对象进行a_param计算
+            
+            self.a_params=self.adaptive_solver.compute_a_paras(x_points=self.candidate_x_pool[sampled_indices],
+                                                            w=self.weights,
+                                                            b=self.biases,
+                                                            y_points=self.candidate_y_pool[sampled_indices],
+                                                            activation=self.activation,
+                                                            )#(W,p+q)
+            """
             #先拟合再抽样
             else:
                 self.candidate_a_params_pool=self.adaptive_solver.compute_a_paras(x_points=self.candidate_x_pool,
@@ -87,7 +72,7 @@ class Dense(BaseTorchBlock):
                 self.weights,self.biases=self.candidate_w_pool[sampled_indices],self.candidate_b_pool[sampled_indices]
                 self.a_params=None if self.candidate_a_params_pool==None else self.candidate_a_params_pool[sampled_indices]
                 
-                
+            """
                 
         else:
             #整池计算a_params,然后抽样

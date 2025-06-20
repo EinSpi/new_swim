@@ -24,44 +24,6 @@ def normalize_and_append_1(F:torch.Tensor):
 
     # Step 4: 拼接
     return torch.cat([normalized_F, ones_column], dim=1)
-     
-def p2(y:torch.Tensor,F:torch.Tensor)->torch.Tensor:
-        """
-        返回cos值指导的概率分布。
-
-        Args:
-            y (torch.Tensor): 目标函数 (T,1)
-            F (torch.Tensor): 所有激活函数 (T,N)
-
-        Returns:
-            prob (torch.Tensor): 概率分布 (N,)
-        """
-        F_prime=normalize_and_append_1(F=F)#(T,N+1)
-        squared_inner_products=(y.T@F_prime)**2 
-        norms=torch.sum(F_prime**2,dim=0,keepdim=True)
-        logits=(squared_inner_products/norms).squeeze()
-        logits=logits[:-1]#去掉最后一个，返回宽度N
-        prob=logits/torch.sum(logits)
-        return prob
-    
-def p3(y:torch.Tensor,F:torch.Tensor)->torch.Tensor:
-    """
-    返回系数指导的概率分布。
-
-    Args:
-        y (torch.Tensor): 目标函数 (T,1)
-        F (torch.Tensor): 所有激活函数 (T,N)
-
-    Returns:
-        prob (torch.Tensor): 概率分布 (N,)
-    """
-    F_prime=normalize_and_append_1(F=F)#(T,N+1)
-    _,_,Vh=torch.linalg.svd(torch.cat([F_prime, y], dim=1),full_matrices=True)
-    v=Vh[-1]#(N+2)
-    v = v / (-v[-1])#把最后一个调为-1
-    w = (v[:-2])**2#截掉最后两个，还原N
-    prob = w/torch.sum(w)
-    return prob
 
 def p1(x_pairs:torch.Tensor,y_points:torch.Tensor)->torch.Tensor:
     """
@@ -82,6 +44,46 @@ def p1(x_pairs:torch.Tensor,y_points:torch.Tensor)->torch.Tensor:
     logits=var
     prob=logits/torch.sum(logits) #(N,)
     return prob
+     
+def p2(y:torch.Tensor,F:torch.Tensor)->torch.Tensor:
+    """
+    返回cos值指导的概率分布。
+
+    Args:
+        y (torch.Tensor): 目标函数 (T,1)
+        F (torch.Tensor): 所有激活函数 (T,N)
+
+    Returns:
+        prob (torch.Tensor): 概率分布 (N,)
+    """
+    F_prime=normalize_and_append_1(F=F)#(T,N+1)
+    squared_inner_products=(y.T@F_prime)**2 
+    norms=torch.sum(F_prime**2,dim=0,keepdim=True)
+    logits=(squared_inner_products/norms).squeeze()
+    logits=logits[:-1]#去掉最后一个，返回宽度N
+    prob=logits/torch.sum(logits)
+    return prob
+    
+def p3(y:torch.Tensor,F:torch.Tensor)->torch.Tensor:
+    """
+    返回系数指导的概率分布。
+
+    Args:
+        y (torch.Tensor): 目标函数 (T,1)
+        F (torch.Tensor): 所有激活函数 (T,N)
+
+    Returns:
+        prob (torch.Tensor): 概率分布 (N,)
+    """
+    F_prime=normalize_and_append_1(F=F)#(T,N+1)
+    _,_,Vh=torch.linalg.svd(torch.cat([F_prime, y], dim=1),full_matrices=True)
+    v=Vh[-1]#(N+2)
+    v = v / (-v[-1])#把最后一个调为-1
+    w = (v[:-2])**2#截掉最后两个，还原N
+    prob = w/torch.sum(w)
+    return prob
+
+
 def p4(y:torch.Tensor, F:torch.Tensor,max_epochs:int=1000)->torch.Tensor:
 
     M=torch.eye(F.shape[0], requires_grad=True,device=F.device) 
@@ -112,7 +114,31 @@ def p4(y:torch.Tensor, F:torch.Tensor,max_epochs:int=1000)->torch.Tensor:
     print(f"Best offdiag loss {best_loss:.6f} at epoch {best_epoch}")
 
     return p2(y=best_M@y,F=best_M@F)
+
+def p5(y_points:torch.Tensor)->torch.Tensor:
+     #uniform
+     logits=torch.ones(y_points.shape[0])
+     prob = logits/torch.sum(logits)
+     return prob
         
+def p6(x_pairs:torch.Tensor,y_points:torch.Tensor):
+    """
+    返回传统SWIM的概率分布。
+
+    Args:
+        x_pairs (torch.Tensor): 随机抽取的x点对 (N,2,d)
+        y_pairs (torch.Tensor): y点对 (N,2,1)
+
+    Returns:
+        prob (torch.Tensor): 概率分布 (N,)
+    """
+
+    diff_y=torch.norm(y_points[:,0,:]- y_points[:,-1,:],dim=-1)#(N,)
+    diff_x=torch.norm(x_pairs[:,0,:] - x_pairs[:,-1,:] ,dim=-1).clamp_min(1e-6)#(N,)
+    logits = diff_y/diff_x#(N,)
+    prob=logits/torch.sum(logits)
+    return prob
+
 
 
 def diag_loss(M:torch.Tensor, F:torch.Tensor):
@@ -134,6 +160,10 @@ class Probability_Solver:
               return p3(y=tensor1,F=tensor2)
          elif self.prob_strategy=="M":
               return p4(y=tensor1,F=tensor2,max_epochs=self.max_epochs)
+         elif self.prob_strategy=="uni":    
+              return p5(y_points=tensor2)
+         elif self.prob_strategy=="SWIM":
+              return p6(x_pairs=tensor1,y_points=tensor2)
          else:
               raise ValueError("undefined prob strategy")
          

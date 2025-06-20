@@ -4,27 +4,8 @@ import activations.activations as act
 import utils.pre_processing as prp
 import numpy as np
 import torch
-from w_b_solver.w_b_solver import W_B_Solver
-from probability_solver.probability_solver import Probability_Solver
-from adaptive_solver.adaptive_solver import Adaptive_Solver
+from solvers import *
 import SWIM_test
-
-def activation_prepare(activation:str="rat",p:int=4,q:int=3):
-    if activation=="rat":
-        return act.Rational(num_coeff_p=p,num_coeff_q=q)
-    elif activation=="adpt_tanh":
-        return act.Adpt_Tanh()
-    elif activation=="adpt_relu":
-        return act.Adpt_Relu()
-    elif activation=="adpt_sigmoid":
-        return act.Adpt_Sigmoid()
-    elif activation=="tanh":
-        return act.Tanh()
-    elif activation=="relu":
-        return act.Relu()
-    elif activation=="sigmoid":
-        return act.Sigmoid()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="命令行参数示例")
@@ -37,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--rep_scaler",type=int,default=2,help="抽样池尺寸是需要神经元数的几倍")
     parser.add_argument("--loss_metric", type=str,default="mse", help="拟合adaptive参数时用的优化目标")
     parser.add_argument("--prob_strat",type=str,default="var",help="用何种标准计算概率")
+    parser.add_argument("--init_method",type=str,default="relu_like",help="怎样初始化a_params,如果有")
     parser.add_argument("--optimizer", type=str, default="adam", help="子优化任务优化器")
     parser.add_argument("--p", type=int,default=4,help="有理函数的分子阶数")
     parser.add_argument("--q",type=int,default=3,help="有理函数的分母阶数")
@@ -102,7 +84,8 @@ if __name__ == "__main__":
                                     reg_factor=args.reg_factor,
                                     int_sketch=args.int_sketch,
                                     optimizer=args.optimizer,
-                                    cpu_gen=cpu_gen,
+                                    cpu_gen=cpu_gen,gpu_gen=gpu_gen,
+                                    init_method=args.init_method,
                                     save_path=experiment_path,
                                     max_epochs=args.max_epoch)
     probability_solver=Probability_Solver(prob_strategy=args.prob_strat,max_epochs=args.M_max_epoch)

@@ -1,5 +1,4 @@
 import torch
-from activations.activations import Activation
 import gc
 from scipy.spatial import KDTree
 from typing import Tuple
