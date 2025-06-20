@@ -7,7 +7,6 @@ import time
 from multiprocessing import Process, Queue
 from typing import Tuple
 import itertools
-import inspect
 
 def get_i_best_gpus(i):
     try:
@@ -23,16 +22,7 @@ def get_i_best_gpus(i):
         print(e)
         return [0, 1]
     
-def run_training(exp, obj, act, width, device,cwd,queue):
-    env = os.environ.copy()
-    env["CUDA_VISIBLE_DEVICES"] = str(device)
-    
-    cmd = f'python3 SWIM.py --exp {exp} --obj {obj} --act {act} --width {width} --device 0'
-
-    subprocess.call(cmd, shell=True, cwd=cwd,env=env)
-    queue.put(device)  # Notify completion
-
-def run_training2(exp:str, path_keys:list, args_combo:Tuple,
+def run_training(exp:str, path_keys:list, args_combo:Tuple,
                   dict2:dict,last_arg,
                   device, cwd, queue):
     env = os.environ.copy()
@@ -50,9 +40,6 @@ def run_training2(exp:str, path_keys:list, args_combo:Tuple,
     
     subprocess.call(cmd, shell=True, cwd=cwd,env=env)
     queue.put(device)
-
-
-    
 
 def iterate_lists(dict1,dict2,exp,cwd,gpu_num):
     keys1=list(dict1.keys())#需要统计的项目名称列表，随后要传入path_keys
@@ -83,7 +70,7 @@ def iterate_lists(dict1,dict2,exp,cwd,gpu_num):
                         if device in running and running[device].is_alive():
                             running[device].join()
                         last_arg = remaining_items.pop(0)
-                        p = Process(target=run_training2, args=(exp,keys1,combo,dict2,last_arg,device,cwd,queue))
+                        p = Process(target=run_training, args=(exp,keys1,combo,dict2,last_arg,device,cwd,queue))
                         p.start()
                         running[device] = p
                 else:
@@ -98,13 +85,14 @@ def iterate_lists(dict1,dict2,exp,cwd,gpu_num):
 
 
 #######################################################################################################
+#####################################开始实验###########################################################
+#######################################################################################################
 cwd = os.path.dirname(os.path.realpath(__file__))
-gpu_num=2
-exp = 'exp_0620'
+gpu_num=2#最多使用gpu数量
+exp = 'exp_0620'#实验名称
 
 
 ###你想统计的所有实验超参列表，注意名称必须加s，可以是一个，必须名称符合SWIM.py的参数名称
-
 dict1={
     "obj":['KdV_sine','discontinuous_complicated','advection','discontinuous_trivial','burgers', 'euler_bernoulli'],
     "act":['rat'],
@@ -113,7 +101,7 @@ dict1={
     "prob_strat":["var","cos","coeff","M"],
 
 }
-###你不想统计的但想修改的超参列表，必须没有上面项目，以词典的形式,必须是一个值
+###你不想统计的，但想修改的超参列表，必须没有上面项目，以词典的形式,必须是一个值
 dict2={
     "reg_factor":1e-6,
     "max_epoch":3000,
@@ -135,6 +123,7 @@ parser.add_argument("--width", type=int, default=600, help="网络宽度")
 parser.add_argument("--rep_scaler",type=int,default=2,help="抽样池尺寸是需要神经元数的几倍")
 parser.add_argument("--loss_metric", type=str,default="mse", help="拟合adaptive参数时用的优化目标")
 parser.add_argument("--prob_strat",type=str,default="var",help="用何种标准计算概率")
+parser.add_argument("--init_method",type=str,default="relu_like",help="怎样初始化a_params,如果有")
 parser.add_argument("--optimizer", type=str, default="adam", help="子优化任务优化器")
 parser.add_argument("--p", type=int,default=4,help="有理函数的分子阶数")
 parser.add_argument("--q",type=int,default=3,help="有理函数的分母阶数")

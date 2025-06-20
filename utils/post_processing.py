@@ -25,6 +25,14 @@ def save_errors(save_path: str, mse: float, rel_l2: float,):
     with open(rel_error_file, 'a') as f:
         f.write(f"{rel_index}: mse = {rel_l2}\n")
     # 获取当前行数作为索引
+def save_training_time(save_path:str, dauer):
+    os.makedirs(save_path, exist_ok=True)
+    time_file=os.path.join(save_path, 'training_time.txt')
+    time_index=get_line_index(time_file)
+    with open(time_file,'a') as f:
+        f.write(f"{time_index}: training time = {dauer:.6f} sec")
+
+
 def get_line_index(filepath):
     if not os.path.exists(filepath):
         return 0

@@ -1,11 +1,12 @@
 import os
 import argparse
-import activations.activations as act
 import utils.pre_processing as prp
+import utils.post_processing as psp
 import numpy as np
 import torch
 from solvers import *
 import SWIM_test
+import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="命令行参数示例")
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     #创建实验目录：
     #所有参数列表
     all_arg_names=["exp","obj","act","width",
-                   "rep_scaler","loss_metric","prob_strat","optimizer",
+                   "rep_scaler","loss_metric","prob_strat","init_method","optimizer",
                    "p","q","set_size","max_epoch",
                    "M_max_epoch","reg_factor","sample_first","random_seed",
                    "int_sketch","save_weight","device"]
@@ -65,6 +66,7 @@ if __name__ == "__main__":
     ###################################################
     #################训练阶段###########################
     ###################################################
+    
     
     #准备训练数据
     X_train, u_train, utrain_numpy,X_val, u_val, X_idn_star, u_idn_star, T_idn, X_idn, Exact_idn=prp.load_data(data_path="Data/"+args.obj+".mat", seed=args.random_seed)
@@ -103,7 +105,13 @@ if __name__ == "__main__":
                             probability_solver=probability_solver,
                             )
     #模型训练
+    start_time = time.time()#计时
     model.fit(X=X_train,y=u_train)
+    end_time = time.time()
+    dauer=end_time-start_time
+    psp.save_training_time(save_path=experiment_path,dauer=dauer)
+    
+              
     #模型保存
     if args.save_weight:
         torch.save(model.state_dict(),os.path.join(experiment_path,"w_b_a.pth"))
