@@ -79,7 +79,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="命令行参数示例")
     
     # 添加参数
-    parser.add_argument("--exp_config", type=str, default=" ", help="实验配置文件")
+    parser.add_argument("--exp_config", type=str, default="experiment_configs/demo.json", help="实验配置文件")
     args = parser.parse_args()
     
     #加载实验配置文件
@@ -121,7 +121,6 @@ parser.add_argument("--max_epoch",type=int,default=3000,help="局部优化adapti
 parser.add_argument("--M_max_epoch",type=int,default=500,help="优化M矩阵最大迭代次数")
 parser.add_argument("--reg_factor",type=float,default=1e-6,help="第二个归一化系数")
 
-parser.add_argument("--sample_first",type=bool,default=True,help="先抽样还是先拟合")
 parser.add_argument("--random_seed", type=int,default=92,help="随机种子")
 parser.add_argument("--int_sketch",type=bool, default=True,help="是否要绘制中间激活函数图像")
 parser.add_argument("--save_weight", type=bool,default=True, help="是否要保存训练后的权重")

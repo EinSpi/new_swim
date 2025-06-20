@@ -29,7 +29,6 @@ if __name__ == "__main__":
     parser.add_argument("--M_max_epoch",type=int,default=500,help="优化M矩阵最大迭代次数")
     parser.add_argument("--reg_factor",type=float,default=1e-6,help="第二个归一化系数")
     
-    parser.add_argument("--sample_first",type=bool,default=True,help="先抽样还是先拟合")
     parser.add_argument("--random_seed", type=int,default=92,help="随机种子")
     parser.add_argument("--int_sketch",type=bool, default=True,help="是否要绘制中间激活函数图像")
     parser.add_argument("--save_weight", type=bool,default=True, help="是否要保存训练后的权重")
@@ -47,7 +46,7 @@ if __name__ == "__main__":
     all_arg_names=["exp","obj","act","width",
                    "rep_scaler","loss_metric","prob_strat","init_method","optimizer",
                    "p","q","set_size","max_epoch",
-                   "M_max_epoch","reg_factor","sample_first","random_seed",
+                   "M_max_epoch","reg_factor","random_seed",
                    "int_sketch","save_weight","device"]
     experiment_path =os.path.join("Results",args.exp)
     for name in all_arg_names:
@@ -95,7 +94,6 @@ if __name__ == "__main__":
     model=prp.model_prepare(activation=activation,
                             layer_width=args.width,
                             repetition_scaler=args.rep_scaler,
-                            sample_first=args.sample_first,
                             cpu_gen=cpu_gen,
                             gpu_gen=gpu_gen,
                             device= device,
