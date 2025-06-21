@@ -5,11 +5,12 @@ from utils.plotting import newfig, savefig
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-def compute_mse(tensor1,tensor2):
-    return np.mean((tensor1-tensor2)**2)
+import torch
+def compute_mse(tensor1:torch.Tensor,tensor2:torch.Tensor):
+    return torch.mean((tensor1-tensor2)**2)
 
-def compute_rel_l2(tensor1,tensor2):
-    return np.linalg.norm(tensor1-tensor2, ord=2) / np.linalg.norm(tensor2, ord=2)
+def compute_rel_l2(tensor1:torch.Tensor,tensor2:torch.Tensor):
+    return torch.norm(tensor1-tensor2,p=2) / torch.norm(tensor2, p=2).clamp_min(1e-8)
 
 def save_errors(save_path: str, mse: float, rel_l2: float,):
     os.makedirs(save_path, exist_ok=True)

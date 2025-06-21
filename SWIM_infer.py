@@ -71,21 +71,27 @@ def inference(model_path:str,device:torch.device,random_seed:int=99,
 
         _, _, _,_, _, _, _, T_idn, X_idn, Exact_idn=prp.load_data(data_path="Data/"+obj+".mat", seed=random_seed)
         X_idn_star=custom_random_data(lb=lb_idn,ub=ub_idn ,random_seed=random_seed,N_total=100000)
-        u_pred_identifier=model(X_idn_star)#(100000,1)
+        with torch.no_grad():
+            u_pred_identifier=model(X_idn_star)#(100000,1)
         u_pred_identifier=u_pred_identifier.detach().cpu().numpy()#torch to numpy #(100000,1)
         U_pred = griddata(X_idn_star, u_pred_identifier.flatten(), (T_idn, X_idn), method='nearest')#插值到格点上方便后续比对
+        #创建device侧的tensor用来算mse和rel_l2
+        U_pred_tensor = torch.tensor(U_pred, dtype=torch.float32, device=device)
+        Exact_idn_tensor = torch.tensor(Exact_idn, dtype=torch.float32, device=device)
 
-        mse = psp.compute_mse(U_pred,Exact_idn)
-        rel_l2  = psp.compute_rel_l2(U_pred,Exact_idn)
+        mse = psp.compute_mse(U_pred_tensor,Exact_idn_tensor)
+        rel_l2  = psp.compute_rel_l2(U_pred_tensor,Exact_idn_tensor)
     else:
         #直接执行推理
-        u_pred_identifier=model(X_idn_star)
+        with torch.no_grad():
+            u_pred_identifier=model(X_idn_star)
         #计算误差并打印
-        u_pred_identifier=u_pred_identifier.detach().cpu().numpy()#torch to numpy
-        mse=psp.compute_mse(u_pred_identifier,u_idn_star)
-        rel_l2=psp.compute_rel_l2(u_pred_identifier,u_idn_star)
+        #把u_idn_star变成tensor发到device上
+        u_idn_star_tensor=torch.tensor(u_idn_star, dtype=torch.float32, device=device)
+        mse=psp.compute_mse(u_pred_identifier.detach(),u_idn_star_tensor)
+        rel_l2=psp.compute_rel_l2(u_pred_identifier.detach(),u_idn_star_tensor)
         #绘制推理结果误差图
-        U_pred = griddata(X_idn_star, u_pred_identifier.flatten(), (T_idn, X_idn), method='nearest')
+        U_pred = griddata(X_idn_star, u_pred_identifier.detach().cpu().numpy().flatten(), (T_idn, X_idn), method='nearest')
         
 
     print("model "+model_path+f" mse: {mse} rel l2: {rel_l2}")

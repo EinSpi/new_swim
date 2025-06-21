@@ -4,3 +4,4 @@ __pycache__/
 /Results/
 /experiment_configs/
 *.pyc
+/error_curve_plotter.py
