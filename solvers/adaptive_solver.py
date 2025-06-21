@@ -41,7 +41,7 @@ def regularization(params:torch.Tensor, x_points:torch.Tensor, activation:Activa
 def l2_reg(params:torch.Tensor):
     return (params ** 2).sum(dim=-1).mean()  # L2 范数平方
 
-def random_visualize(x_1d:torch.Tensor, y_points:torch.Tensor,a_params:torch.Tensor, activation:Activation,generator:torch.Generator, device:torch.device,how_many:int=8, save_path:str=" "):
+def random_visualize(x_1d:torch.Tensor, y_points:torch.Tensor,a_params:torch.Tensor, activation:Activation,generator:torch.Generator, device:torch.device,how_many:int=3, save_path:str=" "):
     #create random slices to plot
     #x_1d (B,set_size,1)
     if a_params==None:
@@ -136,7 +136,7 @@ class Adaptive_Solver:
         
         if self.int_sketch:
             #随机可视化拟合情况
-            random_visualize(x_1d=x_1d,y_points=y_points,a_params=result,activation=activation,generator=self.cpu_gen,how_many=8,save_path=self.save_path,device=self.device)
+            random_visualize(x_1d=x_1d,y_points=y_points,a_params=result,activation=activation,generator=self.cpu_gen,how_many=3,save_path=self.save_path,device=self.device)
             
         return result
     

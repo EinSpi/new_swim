@@ -22,7 +22,8 @@ class Dense(BaseTorchBlock):
         self.w_b_solver=w_b_solver
         self.adaptive_solver=adaptive_solver
         self.probability_solver=probability_solver
-        self.register_buffer("a_params", torch.zeros(self.layer_width,self.activation.num_a_params))
+        if not activation.num_a_params==0:
+            self.register_buffer("a_params", torch.zeros(self.layer_width,self.activation.num_a_params))
 
 
     
