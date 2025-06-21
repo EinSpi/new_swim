@@ -14,7 +14,7 @@ def normalize_and_append_1(F:torch.Tensor):
     target_norm = T ** 0.5
 
     # Step 1: 计算每一列的模长（2范数）
-    col_norms = torch.norm(F, p=2, dim=0, keepdim=True)  # shape: (1, N)
+    col_norms = torch.norm(F, p=2, dim=0, keepdim=True)+1e-8 # shape: (1, N)
 
     # Step 2: 缩放每列使其模长为 sqrt(T)
     normalized_F = F / col_norms * target_norm
@@ -58,7 +58,7 @@ def p2(y:torch.Tensor,F:torch.Tensor)->torch.Tensor:
     """
     F_prime=normalize_and_append_1(F=F)#(T,N+1)
     squared_inner_products=(y.T@F_prime)**2 
-    norms=torch.sum(F_prime**2,dim=0,keepdim=True)
+    norms=torch.sum(F_prime**2,dim=0,keepdim=True).clamp_min(1e-8)
     logits=(squared_inner_products/norms).squeeze()
     logits=logits[:-1]#去掉最后一个，返回宽度N
     prob=logits/torch.sum(logits)
@@ -76,6 +76,7 @@ def p3(y:torch.Tensor,F:torch.Tensor)->torch.Tensor:
         prob (torch.Tensor): 概率分布 (N,)
     """
     F_prime=normalize_and_append_1(F=F)#(T,N+1)
+    F_prime+=1e-6 * torch.randn_like(F_prime) #即将svd，加入随机噪声破坏奇异性
     _,_,Vh=torch.linalg.svd(torch.cat([F_prime, y], dim=1),full_matrices=True)
     v=Vh[-1]#(N+2)
     v = v / (-v[-1])#把最后一个调为-1
