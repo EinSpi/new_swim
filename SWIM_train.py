@@ -104,6 +104,7 @@ if __name__ == "__main__":
                             )
     #模型训练
     start_time = time.time()#计时
+    print("begin training model "+experiment_path)
     model.fit(X=X_train,y=u_train)
     end_time = time.time()
     dauer=end_time-start_time
