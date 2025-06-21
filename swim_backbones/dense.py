@@ -24,6 +24,8 @@ class Dense(BaseTorchBlock):
         self.probability_solver=probability_solver
         if not activation.num_a_params==0:
             self.register_buffer("a_params", torch.zeros(self.layer_width,self.activation.num_a_params))
+        else:
+            self.a_params=None
 
 
     
