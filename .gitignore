@@ -5,3 +5,5 @@ __pycache__/
 /experiment_configs/
 *.pyc
 /error_curve_plotter.py
+/experiment_plots/
+/activation_function_plotter.py

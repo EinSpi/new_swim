@@ -106,7 +106,7 @@ class Adaptive_Solver:
             if p<4 or q<3:
                 raise ValueError("too less params to approximate relu, p must >= 4,and q>=3")
             else:
-                return torch.tensor([0.0218, 0.5, 1.5957, 1.1915]+[0.0]*(p-4)+[ 0.0, 0.0, 2.383]+[0.0]*(q-3),device=self.device,dtype=torch.float32).repeat(m, 1)
+                return torch.tensor([0.0218, 0.5, 1.5957, 1.1915]+[0.0]*(p-4)+[ 0.0, 2.383, 0.0]+[0.0]*(q-3),device=self.device,dtype=torch.float32).repeat(m, 1)
         elif self.init_method=="zero":
             return torch.zeros(m,p+q,device=self.device,dtype=torch.float32)
         elif self.init_method=="random":
